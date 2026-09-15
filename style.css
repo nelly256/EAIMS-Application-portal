@@ -325,18 +325,30 @@ ul {
   text-align: center;
 }
 
-.step-number {
+.step-icon {
   width: 56px;
   height: 56px;
-  margin: 0 auto 1.5rem;
-  background: #2563eb;
-  color: #ffffff;
+  margin: 0 auto 0.5rem;
+  background: #dbeafe;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+}
+
+.step-num {
+  display: block;
+  text-align: center;
+  font-size: 1.5rem;
   font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 0.75rem;
+}
+
+.step-num::before {
+  content: "Step ";
+  font-size: 0.6em;
+  vertical-align: super;
 }
 
 .step-title {
