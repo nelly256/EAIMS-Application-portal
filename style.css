@@ -45,10 +45,9 @@ ul {
 
 .hero-banner {
   display: flex;
-  width: 100vw;
+  width: 100%;
   height: 90px;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
+  margin-top: -100px;
   margin-bottom: 1.5rem;
 }
 
