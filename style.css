@@ -43,6 +43,30 @@ ul {
   padding: 5rem 0;
 }
 
+.hero-banner {
+  display: flex;
+  width: 100vw;
+  height: 90px;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  margin-bottom: 1.5rem;
+}
+
+.hero-banner .banner-section {
+  flex: 1;
+  border-right: 1px solid #e5e7eb;
+}
+
+.hero-banner .banner-section:last-child {
+  border-right: none;
+}
+
+.hero-banner .banner-1 { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); }
+.hero-banner .banner-2 { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
+.hero-banner .banner-3 { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
+.hero-banner .banner-4 { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
+.hero-banner .banner-5 { background: linear-gradient(135deg, #ea580c 0%, #c21807 100%); }
+
 .section-title {
   text-align: center;
   font-size: clamp(1.75rem, 4vw, 2.5rem);
