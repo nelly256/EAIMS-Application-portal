@@ -60,11 +60,11 @@ ul {
   border-right: none;
 }
 
-.hero-banner .banner-1 { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); }
-.hero-banner .banner-2 { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
-.hero-banner .banner-3 { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
-.hero-banner .banner-4 { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
-.hero-banner .banner-5 { background: linear-gradient(135deg, #ea580c 0%, #c21807 100%); }
+.hero-banner .banner-1 { background: transparent; }
+.hero-banner .banner-2 { background: transparent; }
+.hero-banner .banner-3 { background: transparent; }
+.hero-banner .banner-4 { background: transparent; }
+.hero-banner .banner-5 { background: transparent; }
 
 .section-title {
   text-align: center;
