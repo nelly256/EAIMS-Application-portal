@@ -121,6 +121,14 @@ ul {
   font-weight: 800;
   color: #111827;
   letter-spacing: -0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-img {
+  height: 32px;
+  width: auto;
 }
 
 /* ===== Navigation ===== */
