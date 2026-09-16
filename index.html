@@ -55,11 +55,11 @@
 
   <div class="container">
     <div class="hero-banner">
-      <div class="banner-section banner-1"><span class="banner-number">20+</span><span class="banner-label">Academic programs</span></div>
-      <div class="banner-section banner-2"><span class="banner-number">700+</span><span class="banner-label">Students</span></div>
-      <div class="banner-section banner-3"><span class="banner-number">18+</span><span class="banner-label">Years of Experienced</span></div>
-      <div class="banner-section banner-4"><span class="banner-number">40+</span><span class="banner-label">Experienced team of staff</span></div>
-      <div class="banner-section banner-5"><span class="banner-number">✓</span><span class="banner-label">Registered by Ministry Of Education (MOE) and accredited by National Council for Higher Education (NCHE)</span></div>
+       <div class="banner-section banner-1"><span class="banner-number" data-count="20">20+</span><span class="banner-label">Academic programs</span></div>
+       <div class="banner-section banner-2"><span class="banner-number" data-count="700">700+</span><span class="banner-label">Students</span></div>
+       <div class="banner-section banner-3"><span class="banner-number" data-count="18">18+</span><span class="banner-label">Years of Experienced</span></div>
+       <div class="banner-section banner-4"><span class="banner-number" data-count="40">40+</span><span class="banner-label">Experienced team of staff</span></div>
+       <div class="banner-section banner-5"><span class="banner-number">✓</span><span class="banner-label">Registered by Ministry Of Education (MOE) and accredited by National Council for Higher Education (NCHE)</span></div>
     </div>
   </div>
 
@@ -203,6 +203,33 @@
         nav.classList.remove('open');
       });
     });
+
+    const countElements = document.querySelectorAll('.banner-number[data-count]');
+    const animateCount = (el, target) => {
+      const duration = 2000;
+      const step = target / (duration / 16);
+      let current = 0;
+      const update = () => {
+        current += step;
+        if (current >= target) {
+          el.textContent = target + '+';
+        } else {
+          el.textContent = Math.floor(current) + '+';
+          requestAnimationFrame(update);
+        }
+      };
+      update();
+    };
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          animateCount(el, parseInt(el.dataset.count));
+          observer.unobserve(el);
+        }
+      });
+    }, { threshold: 0.5 });
+    countElements.forEach(el => observer.observe(el));
   </script>
 </body>
 </html>
