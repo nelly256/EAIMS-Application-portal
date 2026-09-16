@@ -220,16 +220,11 @@
       };
       update();
     };
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const el = entry.target;
-          animateCount(el, parseInt(el.dataset.count));
-          observer.unobserve(el);
-        }
-      });
-    }, { threshold: 0.5 });
-    countElements.forEach(el => observer.observe(el));
+    const startCounters = () => {
+      countElements.forEach(el => animateCount(el, parseInt(el.dataset.count)));
+    };
+    startCounters();
+    setInterval(startCounters, 20000);
   </script>
 </body>
 </html>
