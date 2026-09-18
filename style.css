@@ -228,6 +228,7 @@ ul {
 /* ===== Hero ===== */
 .hero {
   padding: 4rem 0 5rem;
+  margin-top: -60px;
 }
 
 .hero-content {
@@ -240,7 +241,7 @@ ul {
   border-radius: 12px;
   overflow: hidden;
   position: relative;
-  min-height: 400px;
+  height: 450px;
 }
 
 .hero-slider {
