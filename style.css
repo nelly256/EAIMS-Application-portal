@@ -268,7 +268,7 @@ ul {
 }
 
 .hero-slider .slide.prev {
-  opacity: 1;
+  opacity: 0;
   transform: translateX(-100%);
 }
 
