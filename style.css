@@ -240,6 +240,7 @@ ul {
   border-radius: 12px;
   overflow: hidden;
   position: relative;
+  min-height: 400px;
 }
 
 .hero-slider {
