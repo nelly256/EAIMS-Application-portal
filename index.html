@@ -4,25 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EAIMS Application Portal</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="icon" href="favicon.png" type="image/png" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 </head>
 <body>
   <header class="header">
     <div class="container header-inner">
-      <a href="/" class="logo">
-        <img src="EAIMS logo.jpg" alt="EAIMS Logo" class="logo-img" />
-      </a>
+      <a href="/" class="logo" aria-label="EAIMS home"><img src="/eaims-logo.jpeg" alt="EAIMS logo" /></a>
       <nav class="nav" id="nav">
         <ul class="nav-list">
-          <li><a href="#features">Why Choose Us</a></li>
-          <li><a href="#how-to-apply">How to Apply</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how-it-works">How It Works</a></li>
+          <li><a href="#testimonials">Testimonials</a></li>
           <li><a href="#contact">Contact</a></li>
-          <li><a href="#" class="btn btn-primary">Login</a></li>
+          <li><a href="/login.html" class="btn btn-primary">Login</a></li>
         </ul>
         <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
           <span class="bar"></span>
@@ -37,129 +32,98 @@
     <div class="container">
       <div class="hero-inner">
       <div class="hero-content">
-        <h1 class="hero-title">Begin your journey at<br />
-          <span class="text-red">East African Institute for</span><br />
-          <span class="text-red">Management Science</span> Today</h1>
-        <p class="hero-subtitle">Take the first step towards your future.  <strong>Our digital application process is designed for your convenience.</strong> join a vibrant community of over 1000 students across East Africa.</p>
+        <h1 class="hero-title">Education & Application Management<br />Simplified</h1>
+        <p class="hero-subtitle">Streamline your academic journey with the EAIMS Application Portal. Apply to programs, track your progress, and manage your educational future — all in one place.</p>
         <div class="hero-actions">
-          <a href="#" class="btn btn-primary btn-lg">Apply Now</a>
+          <a href="register.html" class="btn btn-primary btn-lg">Apply Now</a>
           <a href="#features" class="btn btn-outline btn-lg">Learn More</a>
         </div>
       </div>
       <div class="hero-image">
-        <div class="hero-slider">
-          <img src="grad.JPG.jpeg" alt="EAIMS Portal Dashboard" class="slide" />
-          <img src="grad2.jpeg" alt="EAIMS Portal Dashboard" class="slide" />
-          <img src="grad3.jpeg" alt="EAIMS Portal Dashboard" class="slide" />
-        </div>
+        <img src="portal-dashboard.svg" alt="EAIMS Portal Dashboard" />
       </div>
-      </div>
-    </div>
-  </section>
-
-  <div class="container">
-    <div class="hero-banner">
-       <div class="banner-section banner-1"><span class="banner-number" data-count="20">20+</span><span class="banner-label">Academic programs</span></div>
-       <div class="banner-section banner-2"><span class="banner-number" data-count="700">700+</span><span class="banner-label">Students</span></div>
-       <div class="banner-section banner-3"><span class="banner-number" data-count="18">18+</span><span class="banner-label">Years of Experienced</span></div>
-       <div class="banner-section banner-4"><span class="banner-number" data-count="40">40+</span><span class="banner-label">Experienced team of staff</span></div>
-       <div class="banner-section banner-5"><span class="banner-number">✓</span><span class="banner-label">Registered by Ministry Of Education (MOE) and accredited by National Council for Higher Education (NCHE)</span></div>
-    </div>
-  </div>
-
-  <section id="how-to-apply" class="how-it-works section">
-    <div class="container">
-      <h2 class="section-title">How to Apply</h2>
-      <p class="section-subtitle">Getting started is simple — just follow these three steps.</p>
-       <div class="steps">
-        <div class="step">
-          <div class="step-icon">
-            <i class="fas fa-user"></i>
-          </div>
-          <span class="step-num">1</span>
-          <h3 class="step-title">Personal Info</h3>
-          <p class="step-text">Fill in your basic details — name, contacts, and background</p>
-        </div>
-        <div class="step">
-          <div class="step-icon">
-            <i class="fas fa-book-open"></i>
-          </div>
-          <span class="step-num">2</span>
-          <h3 class="step-title">Choose Program</h3>
-          <p class="step-text">Browse and select your preferred academic program from our offerings.</p>
-        </div>
-        <div class="step">
-          <div class="step-icon">
-            <i class="fas fa-cloud-upload-alt"></i>
-          </div>
-          <span class="step-num">3</span>
-          <h3 class="step-title">Upload Documents</h3>
-          <p class="step-text">Upload your required documents and submit them for review.</p>
-        </div>
       </div>
     </div>
   </section>
 
   <section id="features" class="features section">
     <div class="container">
-      <h2 class="section-title">Why Chose us</h2>
-      <p class="section-subtitle">World-class education with a focus on practical skills and career success.</p>
+      <h2 class="section-title">Everything you need in one platform</h2>
+      <p class="section-subtitle">Discover powerful tools designed to make your application process seamless and efficient.</p>
       <div class="feature-grid">
         <div class="feature-card">
           <div class="feature-icon">
-            <i class="fas fa-graduation-cap"></i>
+            <img src="icon-application.svg" alt="" />
           </div>
-          <h3 class="feature-title">Quality education</h3>
-          <p class="feature-text">Nationally recognized programs designed by industry experts</p>
+          <h3 class="feature-title">Easy Applications</h3>
+          <p class="feature-text">Submit applications to multiple programs with a single, intuitive interface.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">
-            <i class="fas fa-clock"></i>
+            <img src="icon-progress.svg" alt="" />
           </div>
-          <h3 class="feature-title">Flexible Learning</h3>
-          <p class="feature-text">On-campus weekday and weekend learning options available</p>
+          <h3 class="feature-title">Real-time Tracking</h3>
+          <p class="feature-text">Monitor your application status and receive instant notifications on updates.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">
-            <i class="fas fa-hand-holding-usd"></i>
+            <img src="icon-documents.svg" alt="" />
           </div>
-          <h3 class="feature-title">Affordable Fees</h3>
-          <p class="feature-text">Accessible tuition with flexible payment plans and scholarships</p>
+          <h3 class="feature-title">Document Management</h3>
+          <p class="feature-text">Upload, store, and organize all required documents securely in one place.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">
-            <i class="fas fa-cogs"></i>
+            <img src="icon-calendar.svg" alt="" />
           </div>
-          <h3 class="feature-title">Practical Skills</h3>
-          <p class="feature-text">Hands-on training and real-world experience in your field</p>
+          <h3 class="feature-title">Deadlines & Reminders</h3>
+          <p class="feature-text">Stay on top of important dates with automated reminders and calendar syncs.</p>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i class="fas fa-briefcase"></i>
-          </div>
-          <h3 class="feature-title">Career Support</h3>
-          <p class="feature-text">Dedicated career services and industry connections</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how-it-works" class="how-it-works section">
+    <div class="container">
+      <h2 class="section-title">How It Works</h2>
+      <p class="section-subtitle">Getting started is simple — just follow these three steps.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h3 class="step-title">Create Your Account</h3>
+          <p class="step-text">Sign up in seconds with your email or institutional credentials.</p>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i class="fas fa-users"></i>
-          </div>
-          <h3 class="feature-title">Vibrant Community</h3>
-          <p class="feature-text">Diverse student body with clubs and activities</p>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h3 class="step-title">Fill Out Applications</h3>
+          <p class="step-text">Complete and submit your applications to one or more programs.</p>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i class="fas fa-theater-masks"></i>
-          </div>
-          <h3 class="feature-title">Campus Culture</h3>
-          <p class="feature-text">Diverse and inclusive community fostering personal growth</p>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h3 class="step-title">Track & Get Accepted</h3>
+          <p class="step-text">Follow your progress in real time and receive your admission decision.</p>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <i class="fas fa-globe-americas"></i>
+      </div>
+    </div>
+  </section>
+
+  <section id="testimonials" class="testimonials section">
+    <div class="container">
+      <h2 class="section-title">What Our Users Say</h2>
+      <div class="testimonial-grid">
+        <div class="testimonial-card">
+          <p class="testimonial-text">The EAIMS Portal made applying for my master's program effortless. I could track everything in real time and never missed a deadline.</p>
+          <div class="testimonial-author">
+            <span class="author-name">Maria Santos</span>
+            <span class="author-title">Master of Computer Science</span>
           </div>
-          <h3 class="feature-title">Global Network</h3>
-          <p class="feature-text">Connect with alumni and partners worldwide</p>
+        </div>
+        <div class="testimonial-card">
+          <p class="testimonial-text">The document upload feature saved me hours. Everything was organized and accessible to the admissions team instantly.</p>
+          <div class="testimonial-author">
+            <span class="author-name">James Liu</span>
+            <span class="author-title">Bachelor of Business Administration</span>
+          </div>
         </div>
       </div>
     </div>
@@ -170,7 +134,7 @@
       <div class="cta-content">
         <h2 class="cta-title">Ready to Begin Your Journey?</h2>
         <p class="cta-subtitle">Join thousands of students who have simplified their application process with EAIMS.</p>
-        <a href="#" class="btn btn-primary btn-lg">Get Started Today</a>
+        <a href="register.html" class="btn btn-primary btn-lg">Get Started Today</a>
       </div>
     </div>
   </section>
@@ -178,12 +142,13 @@
   <footer id="contact" class="footer">
     <div class="container footer-inner">
       <div class="footer-brand">
-       <a href="/" class="logo">EAIMS</a>
-        <p class="footer-copy">© 2026 Education & Application Management System. All rights reserved.</p>
+      <a href="/" class="logo" aria-label="EAIMS home"><img src="/eaims-logo.jpeg" alt="EAIMS logo" /></a>
+        <p class="footer-copy">© 2026 EAIMS. All Rights Reserved.</p>
       </div>
       <nav class="footer-nav">
         <a href="#features">Features</a>
-        <a href="#how-to-apply">How to Apply</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#testimonials">Testimonials</a>
         <a href="#contact">Contact</a>
       </nav>
       <div class="footer-social">
@@ -194,56 +159,6 @@
     </div>
   </footer>
 
-  <script>
-    const navToggle = document.getElementById('navToggle');
-    const nav = document.getElementById('nav');
-
-    navToggle.addEventListener('click', () => {
-      nav.classList.toggle('open');
-    });
-
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        nav.classList.remove('open');
-      });
-    });
-
-    const countElements = document.querySelectorAll('.banner-number[data-count]');
-    const animateCount = (el, target) => {
-      const duration = 2000;
-      const step = target / (duration / 16);
-      let current = 0;
-      const update = () => {
-        current += step;
-        if (current >= target) {
-          el.textContent = target + '+';
-        } else {
-          el.textContent = Math.floor(current) + '+';
-          requestAnimationFrame(update);
-        }
-      };
-      update();
-    };
-    const startCounters = () => {
-      countElements.forEach(el => animateCount(el, parseInt(el.dataset.count)));
-    };
-    startCounters();
-    setInterval(startCounters, 20000);
-
-    const slides = document.querySelectorAll('.hero-slider .slide');
-    if (slides.length > 1) {
-      let currentSlide = 0;
-      slides[0].classList.add('active');
-      setInterval(() => {
-        slides[currentSlide].classList.remove('active');
-        slides[currentSlide].classList.add('prev');
-        currentSlide = (currentSlide + 1) % slides.length;
-        slides[currentSlide].classList.add('active');
-        setTimeout(() => {
-          slides.forEach(s => s.classList.remove('prev'));
-        }, 1000);
-      }, 5000);
-    }
-  </script>
+  <script src="/js/nav.js"></script>
 </body>
 </html>

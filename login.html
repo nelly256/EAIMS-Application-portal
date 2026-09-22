@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Log in to the EAIMS Online Application Portal" />
+  <title>Log In | EAIMS Online Application Portal</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+</head>
+<body class="auth-page-body">
+  <main class="auth-page">
+    <div class="auth-page-inner">
+      <section class="auth-brand" aria-label="EAIMS Online Application Portal">
+        <img class="brand-logo" src="/eaims-logo.jpeg" alt="EAIMS logo" />
+        <h1 class="institution-name">EAST AFRICAN INSTITUTE FOR MANAGEMENT SCIENCE</h1>
+        <p class="portal-subtitle">ONLINE APPLICATION PORTAL</p>
+      </section>
+
+      <section class="auth-card auth-card-login" aria-labelledby="login-title">
+        <div class="auth-header">
+          <h2 class="auth-title" id="login-title">LOG IN TO YOUR ACCOUNT</h2>
+          <p class="auth-subtitle">Access your applicant dashboard and continue your application.</p>
+        </div>
+
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label class="visually-hidden" for="identifier">Email or Phone Number</label>
+            <div class="input-shell">
+              <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+              <input id="identifier" name="identifier" type="text" placeholder="Email or Phone Number" autocomplete="username" required />
+            </div>
+            <p class="field-help">This field is case sensitive</p>
+            <p class="field-error" data-field-error="identifier" hidden></p>
+          </div>
+
+          <div class="field">
+            <label class="visually-hidden" for="password">Password</label>
+            <div class="input-shell password-shell">
+              <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              <input id="password" name="password" type="password" placeholder="Password" autocomplete="current-password" required />
+              <button class="password-toggle" type="button" aria-controls="password" aria-label="Show password" aria-pressed="false">
+                <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="m3 3 18 18"/><path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17.4 17.4 0 0 1-2.2 2.9M6.6 6.6C3.7 8.3 2 12 2 12s3.5 7 10 7c1.5 0 2.8-.3 4-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+              </button>
+            </div>
+            <p class="field-error" data-field-error="password" hidden></p>
+          </div>
+
+          <div class="auth-links">
+            <a class="auth-link" href="/register.html">Create an account</a>
+            <a class="auth-link" href="/forgot-password.html">Forgot your password?</a>
+          </div>
+
+          <div id="formError" class="form-message form-message-error" role="alert" hidden></div>
+          <div id="formSuccess" class="form-message form-message-success" role="status" hidden></div>
+          <button class="btn btn-primary btn-lg btn-block auth-submit" type="submit">LOG IN</button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <footer class="auth-footer">
+    <p>&copy; 2026 EAIMS. All Rights Reserved.</p>
+  </footer>
+
+  <script src="/js/auth-client.js"></script>
+  <script src="/js/login.js"></script>
+</body>
+</html>
