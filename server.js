@@ -115,12 +115,9 @@ app.get('/dashboard', requireAuth, requireVerified, (req, res) => sendFile(res, 
 
 app.get('/style.css', (req, res) => sendFile(res, 'style.css'));
 app.get('/favicon.svg', (req, res) => sendFile(res, 'favicon.svg'));
+app.get('/favicon.png', (req, res) => sendFile(res, 'favicon.png'));
 app.get('/eaims-logo.jpeg', (req, res) => sendFile(res, path.join('src', 'EAIMS logo.jpeg')));
-app.get('/icon-application.svg', (req, res) => sendFile(res, 'icon-application.svg'));
-app.get('/icon-calendar.svg', (req, res) => sendFile(res, 'icon-calendar.svg'));
-app.get('/icon-documents.svg', (req, res) => sendFile(res, 'icon-documents.svg'));
-app.get('/icon-progress.svg', (req, res) => sendFile(res, 'icon-progress.svg'));
-app.get('/portal-dashboard.svg', (req, res) => sendFile(res, 'portal-dashboard.svg'));
+
 app.use('/js', express.static(path.join(__dirname, 'public', 'js'), {
   immutable: true,
   maxAge: config.nodeEnv === 'production' ? '1d' : 0,
