@@ -117,6 +117,10 @@ app.get('/style.css', (req, res) => sendFile(res, 'style.css'));
 app.get('/favicon.svg', (req, res) => sendFile(res, 'favicon.svg'));
 app.get('/favicon.png', (req, res) => sendFile(res, 'favicon.png'));
 app.get('/eaims-logo.jpeg', (req, res) => sendFile(res, path.join('src', 'EAIMS logo.jpeg')));
+app.get('/EAIMS%20logo.jpg', (req, res) => sendFile(res, 'EAIMS logo.jpg'));
+app.get('/grad.JPG.jpeg', (req, res) => sendFile(res, 'grad.JPG.jpeg'));
+app.get('/grad2.jpeg', (req, res) => sendFile(res, 'grad2.jpeg'));
+app.get('/grad3.jpeg', (req, res) => sendFile(res, 'grad3.jpeg'));
 
 app.use('/js', express.static(path.join(__dirname, 'public', 'js'), {
   immutable: true,
