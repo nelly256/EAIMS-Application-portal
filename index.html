@@ -194,56 +194,6 @@
     </div>
   </footer>
 
-  <script>
-    const navToggle = document.getElementById('navToggle');
-    const nav = document.getElementById('nav');
-
-    navToggle.addEventListener('click', () => {
-      nav.classList.toggle('open');
-    });
-
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        nav.classList.remove('open');
-      });
-    });
-
-    const countElements = document.querySelectorAll('.banner-number[data-count]');
-    const animateCount = (el, target) => {
-      const duration = 2000;
-      const step = target / (duration / 16);
-      let current = 0;
-      const update = () => {
-        current += step;
-        if (current >= target) {
-          el.textContent = target + '+';
-        } else {
-          el.textContent = Math.floor(current) + '+';
-          requestAnimationFrame(update);
-        }
-      };
-      update();
-    };
-    const startCounters = () => {
-      countElements.forEach(el => animateCount(el, parseInt(el.dataset.count)));
-    };
-    startCounters();
-    setInterval(startCounters, 20000);
-
-    const slides = document.querySelectorAll('.hero-slider .slide');
-    if (slides.length > 1) {
-      let currentSlide = 0;
-      slides[0].classList.add('active');
-      setInterval(() => {
-        slides[currentSlide].classList.remove('active');
-        slides[currentSlide].classList.add('prev');
-        currentSlide = (currentSlide + 1) % slides.length;
-        slides[currentSlide].classList.add('active');
-        setTimeout(() => {
-          slides.forEach(s => s.classList.remove('prev'));
-        }, 1000);
-      }, 5000);
-    }
-  </script>
+   <script src="/js/home.js"></script>
 </body>
 </html>
