@@ -10,14 +10,14 @@
 <body>
   <header class="header">
     <div class="container header-inner">
-      <a href="/" class="logo">EAIMS</a>
+      <a href="/" class="logo" aria-label="EAIMS home"><img src="/eaims-logo.jpeg" alt="EAIMS logo" /></a>
       <nav class="nav" id="nav">
         <ul class="nav-list">
           <li><a href="#features">Features</a></li>
           <li><a href="#how-it-works">How It Works</a></li>
           <li><a href="#testimonials">Testimonials</a></li>
           <li><a href="#contact">Contact</a></li>
-          <li><a href="#" class="btn btn-primary">Login</a></li>
+          <li><a href="/login.html" class="btn btn-primary">Login</a></li>
         </ul>
         <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
           <span class="bar"></span>
@@ -35,7 +35,7 @@
         <h1 class="hero-title">Education & Application Management<br />Simplified</h1>
         <p class="hero-subtitle">Streamline your academic journey with the EAIMS Application Portal. Apply to programs, track your progress, and manage your educational future — all in one place.</p>
         <div class="hero-actions">
-          <a href="#" class="btn btn-primary btn-lg">Apply Now</a>
+          <a href="register.html" class="btn btn-primary btn-lg">Apply Now</a>
           <a href="#features" class="btn btn-outline btn-lg">Learn More</a>
         </div>
       </div>
@@ -134,7 +134,7 @@
       <div class="cta-content">
         <h2 class="cta-title">Ready to Begin Your Journey?</h2>
         <p class="cta-subtitle">Join thousands of students who have simplified their application process with EAIMS.</p>
-        <a href="#" class="btn btn-primary btn-lg">Get Started Today</a>
+        <a href="register.html" class="btn btn-primary btn-lg">Get Started Today</a>
       </div>
     </div>
   </section>
@@ -142,8 +142,8 @@
   <footer id="contact" class="footer">
     <div class="container footer-inner">
       <div class="footer-brand">
-        <a href="/" class="logo">EAIMS</a>
-        <p class="footer-copy">© 2026 Education & Application Management System. All rights reserved.</p>
+      <a href="/" class="logo" aria-label="EAIMS home"><img src="/eaims-logo.jpeg" alt="EAIMS logo" /></a>
+        <p class="footer-copy">© 2026 EAIMS. All Rights Reserved.</p>
       </div>
       <nav class="footer-nav">
         <a href="#features">Features</a>
@@ -159,19 +159,6 @@
     </div>
   </footer>
 
-  <script>
-    const navToggle = document.getElementById('navToggle');
-    const nav = document.getElementById('nav');
-
-    navToggle.addEventListener('click', () => {
-      nav.classList.toggle('open');
-    });
-
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        nav.classList.remove('open');
-      });
-    });
-  </script>
+  <script src="/js/nav.js"></script>
 </body>
 </html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="EAIMS applicant dashboard" />
+  <title>Applicant Dashboard | EAIMS Online Application Portal</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+</head>
+<body>
+  <header class="header dashboard-header">
+    <div class="container header-inner">
+      <a href="/dashboard" class="dashboard-brand" aria-label="EAIMS applicant dashboard">
+        <img src="/eaims-logo.jpeg" alt="EAIMS logo" />
+        <span>EAIMS</span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Applicant navigation">
+        <ul class="nav-list">
+          <li><a href="/dashboard">Dashboard</a></li>
+          <li><a href="/dashboard#profile">Profile</a></li>
+          <li><a href="/dashboard#application">Application</a></li>
+          <li><button id="logoutButton" class="btn btn-outline" type="button">Log out</button></li>
+        </ul>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+          <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="dashboard-page">
+    <div class="container">
+      <div class="dashboard-heading">
+        <div>
+          <p class="eyebrow">APPLICANT PORTAL</p>
+          <h1>Welcome, <span id="applicantName">Applicant</span></h1>
+          <p>Review your account details and track your online application.</p>
+        </div>
+        <div class="status-pill"><span></span><span id="verificationStatus">Account verified</span></div>
+      </div>
+
+      <div id="dashboardError" class="form-message form-message-error" role="alert" hidden></div>
+
+      <div id="dashboardContent" class="dashboard-grid" hidden>
+        <section class="dashboard-card dashboard-card-profile" id="profile">
+          <div class="card-heading">
+            <div>
+              <p class="eyebrow">APPLICANT PROFILE</p>
+              <h2>Your details</h2>
+            </div>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <dl class="profile-list">
+            <div><dt>Full name</dt><dd id="applicantNameDetail"></dd></div>
+            <div><dt>Email address</dt><dd id="applicantEmail"></dd></div>
+            <div><dt>Phone number</dt><dd id="applicantPhone"></dd></div>
+            <div><dt>Nationality</dt><dd id="applicantNationality"></dd></div>
+            <div><dt>Date of birth</dt><dd id="applicantDob"></dd></div>
+          </dl>
+        </section>
+
+        <section class="dashboard-card dashboard-card-application" id="application">
+          <div class="card-heading">
+            <div>
+              <p class="eyebrow">APPLICATION ACCESS</p>
+              <h2>Continue when applications open</h2>
+            </div>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 1 4-4"/><path d="M20 10a8 8 0 1 1-3.5-6.6"/></svg>
+          </div>
+          <div class="application-status">
+            <span class="status-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+            <div>
+              <h3>Account verified</h3>
+              <p>Your verified account is ready for the application process.</p>
+            </div>
+          </div>
+          <a class="btn btn-primary btn-block" href="#profile">Review your profile</a>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="auth-footer dashboard-footer"><p>&copy; 2026 EAIMS. All Rights Reserved.</p></footer>
+  <script src="/js/auth-client.js"></script>
+  <script src="/js/nav.js"></script>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>
