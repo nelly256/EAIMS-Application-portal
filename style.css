@@ -630,9 +630,8 @@ ul {
 }
 
 .brand-logo {
-  width: clamp(68px, 12vw, 92px);
+  width: clamp(120px, 30vw, 200px);
   height: auto;
-  aspect-ratio: 1;
   margin-bottom: 1rem;
 }
 
