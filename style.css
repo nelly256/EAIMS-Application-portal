@@ -214,6 +214,18 @@ ul {
   width: auto;
 }
 
+.dashboard-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink);
+}
+
+.dashboard-brand img {
+  width: 32px;
+  height: 32px;
+}
+
 /* ===== Navigation ===== */
 .nav {
   display: flex;
