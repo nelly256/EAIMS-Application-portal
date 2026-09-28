@@ -6,15 +6,13 @@
   <meta name="description" content="Verify your EAIMS application account" />
   <title>Verify Account | EAIMS Online Application Portal</title>
   <link rel="stylesheet" href="/style.css" />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon.png" type="image/png" />
 </head>
 <body class="auth-page-body">
   <main class="auth-page">
     <div class="auth-page-inner">
       <section class="auth-brand" aria-label="EAIMS Online Application Portal">
         <img class="brand-logo" src="/eaims-logo.jpeg" alt="EAIMS logo" />
-        <h1 class="institution-name">EAST AFRICAN INSTITUTE FOR MANAGEMENT SCIENCE</h1>
-        <p class="portal-subtitle">ONLINE APPLICATION PORTAL</p>
       </section>
 
       <section class="auth-card" aria-labelledby="verify-title">
@@ -26,7 +24,7 @@
           <div class="field">
             <label class="visually-hidden" for="code">Verification code</label>
             <div class="input-shell verification-shell">
-              <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              <i class="fas fa-key input-icon"></i>
               <input id="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Enter 6-digit code" required />
             </div>
             <p class="field-error" data-field-error="code" hidden></p>

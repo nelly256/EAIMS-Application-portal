@@ -17,22 +17,22 @@ const app = express();
 app.disable('x-powered-by');
 if (config.nodeEnv === 'production') app.set('trust proxy', 1);
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'"],
-      imgSrc: ["'self'", 'data:'],
-      connectSrc: ["'self'"],
-      fontSrc: ["'self'"],
-      objectSrc: ["'none'"],
-      baseUri: ["'self'"],
-      formAction: ["'self'"],
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        fontSrc: ["'self'", 'https://cdnjs.cloudflare.com', 'https://fonts.gstatic.com'],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
     },
-  },
-  crossOriginEmbedderPolicy: false,
-}));
+    crossOriginEmbedderPolicy: false,
+  }));
 morgan.token('safe-url', (req) => String(req.originalUrl || '').split('?')[0]);
 const logFormat = ':remote-addr - :remote-user [:date[clf]] ":method :safe-url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"';
 app.use(morgan(logFormat));
@@ -116,11 +116,11 @@ app.get('/dashboard', requireAuth, requireVerified, (req, res) => sendFile(res, 
 app.get('/style.css', (req, res) => sendFile(res, 'style.css'));
 app.get('/favicon.svg', (req, res) => sendFile(res, 'favicon.svg'));
 app.get('/eaims-logo.jpeg', (req, res) => sendFile(res, path.join('src', 'EAIMS logo.jpeg')));
-app.get('/icon-application.svg', (req, res) => sendFile(res, 'icon-application.svg'));
-app.get('/icon-calendar.svg', (req, res) => sendFile(res, 'icon-calendar.svg'));
-app.get('/icon-documents.svg', (req, res) => sendFile(res, 'icon-documents.svg'));
-app.get('/icon-progress.svg', (req, res) => sendFile(res, 'icon-progress.svg'));
-app.get('/portal-dashboard.svg', (req, res) => sendFile(res, 'portal-dashboard.svg'));
+app.get('/grad.JPG.jpeg', (req, res) => sendFile(res, 'grad.JPG.jpeg'));
+app.get('/grad2.jpeg', (req, res) => sendFile(res, 'grad2.jpeg'));
+app.get('/grad3.jpeg', (req, res) => sendFile(res, 'grad3.jpeg'));
+app.get('/EAIMS%20logo.jpg', (req, res) => sendFile(res, 'EAIMS logo.jpg'));
+app.get('/EAIMS%20logo.jpeg', (req, res) => sendFile(res, 'EAIMS logo.jpeg'));
 app.use('/js', express.static(path.join(__dirname, 'public', 'js'), {
   immutable: true,
   maxAge: config.nodeEnv === 'production' ? '1d' : 0,

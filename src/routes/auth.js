@@ -142,13 +142,15 @@ router.post('/forgot-password', csrfProtection, asyncRoute(async (req, res) => {
   const message = recovery.sent
     ? 'If an account matches those details, password reset instructions have been sent.'
     : 'If an account matches those details, password reset instructions will be sent once email or SMS delivery is configured.';
-  return res.json({
-    ok: true,
-    data: {
-      message,
-      deliveryAvailable: recovery.sent,
-    },
-  });
+  const data = {
+    message,
+    deliveryAvailable: recovery.sent,
+  };
+  if (config.nodeEnv === 'development' && recovery.resetUrl) {
+    data.developmentResetUrl = recovery.resetUrl;
+    console.log('[DEV PASSWORD RESET]', recovery.resetUrl);
+  }
+  return res.json({ ok: true, data });
 }));
 
 router.post('/reset-password', csrfProtection, asyncRoute(async (req, res) => {
