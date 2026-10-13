@@ -31,8 +31,8 @@ app.use(helmet({
       formAction: ["'self'"],
     },
   },
-  crossOriginEmbedderPolicy: false,
-}));
+    crossOriginEmbedderPolicy: false,
+  }));
 morgan.token('safe-url', (req) => String(req.originalUrl || '').split('?')[0]);
 const logFormat = ':remote-addr - :remote-user [:date[clf]] ":method :safe-url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"';
 app.use(morgan(logFormat));
@@ -117,7 +117,6 @@ app.get('/style.css', (req, res) => sendFile(res, 'style.css'));
 app.get('/favicon.svg', (req, res) => sendFile(res, 'favicon.svg'));
 app.get('/favicon.png', (req, res) => sendFile(res, 'favicon.png'));
 app.get('/eaims-logo.jpeg', (req, res) => sendFile(res, path.join('src', 'EAIMS logo.jpeg')));
-
 app.get(/\.(jpe?g|png|gif|ico|webp)$/i, (req, res, next) => {
   res.sendFile(req.path, { root: __dirname }, (err) => {
     if (err) next();

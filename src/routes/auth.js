@@ -47,6 +47,17 @@ function validationError(res, result) {
   });
 }
 
+function publicDelivery(delivery) {
+  const result = {};
+  for (const channel of ['email', 'sms']) {
+    const channelResult = delivery && delivery[channel];
+    result[channel] = { sent: Boolean(channelResult && channelResult.sent) };
+    if (channelResult && channelResult.reason) result[channel].reason = channelResult.reason;
+    else if (!result[channel].sent) result[channel].reason = 'DELIVERY_FAILED';
+  }
+  return result;
+}
+
 router.get('/options', (req, res) => {
   res.json({ ok: true, data: { countries: COUNTRY_CODES, nationalities: NATIONALITIES } });
 });
@@ -63,7 +74,7 @@ router.post('/register', csrfProtection, asyncRoute(async (req, res) => {
       message: 'Account created. Verify your account to continue.',
       redirect: '/verify.html',
       deliveryAvailable: registration.deliveryAvailable,
-      delivery: registration.delivery,
+      delivery: publicDelivery(registration.delivery),
     },
   };
   return res.status(201).json(response);
@@ -99,7 +110,7 @@ router.post('/resend-verification', csrfProtection, asyncRoute(async (req, res) 
     data: {
       message: 'A new verification code has been sent.',
       deliveryAvailable: Boolean(delivery.email.sent || delivery.sms.sent),
-      delivery,
+      delivery: publicDelivery(delivery),
     },
   });
 }));
@@ -139,16 +150,14 @@ router.post('/forgot-password', csrfProtection, asyncRoute(async (req, res) => {
     });
   }
   const recovery = await requestPasswordReset(identifier.value);
-  const message = recovery.sent
-    ? 'If an account matches those details, password reset instructions have been sent.'
-    : 'If an account matches those details, password reset instructions will be sent once email or SMS delivery is configured.';
-  return res.json({
-    ok: true,
-    data: {
-      message,
-      deliveryAvailable: recovery.sent,
-    },
-  });
+  const data = {
+    message: 'If an account matches those details, password reset instructions will be sent if delivery is available.',
+  };
+  if (config.nodeEnv === 'development' && recovery.resetUrl) {
+    data.developmentResetUrl = recovery.resetUrl;
+    console.log('[DEV PASSWORD RESET]', recovery.resetUrl);
+  }
+  return res.json({ ok: true, data });
 }));
 
 router.post('/reset-password', csrfProtection, asyncRoute(async (req, res) => {
@@ -164,6 +173,16 @@ router.get('/session', async (req, res, next) => {
   if (!req.session.userId) return res.json({ ok: true, data: { authenticated: false } });
   try {
     const applicant = await getApplicant(req.session.userId);
+    if (!applicant) {
+      await new Promise((resolve) => req.session.destroy(resolve));
+      res.clearCookie('eaims.sid', {
+        path: '/',
+        httpOnly: true,
+        secure: config.cookieSecure,
+        sameSite: 'lax',
+      });
+      return res.json({ ok: true, data: { authenticated: false } });
+    }
     return res.json({ ok: true, data: { authenticated: true, applicant: publicApplicant(applicant) } });
   } catch (error) {
     req.session.destroy(() => {});

@@ -100,20 +100,22 @@
     });
   }
 
-  function initPasswordToggles(root = document) {
-    root.querySelectorAll('.password-toggle').forEach((button) => {
-      button.addEventListener('click', () => {
-        const input = root.querySelector(`#${CSS.escape(button.getAttribute('aria-controls'))}`);
-        if (!input) return;
-        const show = input.type === 'password';
-        input.type = show ? 'text' : 'password';
-        button.setAttribute('aria-pressed', String(show));
-        button.querySelector('.icon-eye').hidden = show;
-        button.querySelector('.icon-eye-off').hidden = !show;
-        button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-      });
+function initPasswordToggles(root = document) {
+  root.querySelectorAll('.password-toggle').forEach((button) => {
+    button.addEventListener('click', () => {
+      const input = root.querySelector(`#${CSS.escape(button.getAttribute('aria-controls'))}`);
+      if (!input) return;
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      button.setAttribute('aria-pressed', String(show));
+      const eyeIcon = button.querySelector('.fa-eye');
+      const eyeSlashIcon = button.querySelector('.fa-eye-slash');
+      if (eyeIcon) eyeIcon.hidden = show;
+      if (eyeSlashIcon) eyeSlashIcon.hidden = !show;
+      button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
     });
-  }
+  });
+}
 
   function initDateLimits(root = document) {
     root.querySelectorAll('input[type="date"]').forEach((input) => {

@@ -217,13 +217,23 @@ ul {
 .dashboard-brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   color: var(--ink);
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .dashboard-brand img {
-  width: 32px;
-  height: 32px;
+  display: block;
+  width: auto;
+  height: 80px;
+  object-fit: contain;
+}
+
+.dashboard-brand span {
+  color: var(--brand-dark);
+  line-height: 1;
 }
 
 /* ===== Navigation ===== */
@@ -236,6 +246,31 @@ ul {
   display: flex;
   align-items: center;
   gap: 2rem;
+}
+
+.dashboard-header .nav-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  gap: 1.25rem;
+}
+
+.dashboard-header .nav-list a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-decoration: none;
+}
+
+.dashboard-header .nav-list i {
+  width: 1rem;
+  text-align: center;
+}
+
+.nav-list a {
+  font-weight: 500;
+  color: #374151;
+  transition: color 0.2s ease;
 }
 
 .nav-list a {
@@ -587,6 +622,10 @@ ul {
     padding: 1.5rem;
   }
 
+  .dashboard-header .nav-list {
+    align-items: stretch;
+  }
+
   .nav-toggle {
     display: flex;
   }
@@ -645,9 +684,8 @@ ul {
 }
 
 .brand-logo {
-  width: clamp(68px, 12vw, 92px);
+  width: clamp(160px, 40vw, 280px);
   height: auto;
-  aspect-ratio: 1;
   margin-bottom: 1rem;
 }
 
@@ -924,9 +962,9 @@ ul {
 }
 
 .form-message-info {
-  color: var(--info, #1e40af);
-  background: var(--info-bg, #eff6ff);
-  border-color: var(--info-border, #93c5fd);
+  color: #1e40af;
+  background: #eff6ff;
+  border-color: #93c5fd;
 }
 
 .auth-links {
@@ -1038,6 +1076,7 @@ ul {
   align-items: center;
   gap: 0.5rem;
   flex: 0 0 auto;
+  white-space: nowrap;
   padding: 0.5rem 0.8rem;
   color: var(--success);
   background: var(--success-bg);
@@ -1047,7 +1086,8 @@ ul {
   font-weight: 700;
 }
 
-.status-pill span {
+.status-pill span:first-child {
+  flex: 0 0 9px;
   width: 9px;
   height: 9px;
   background: #22c55e;
@@ -1160,6 +1200,7 @@ ul {
   margin-top: auto;
 }
 
+/* ===== Auth Pages Media Queries ===== */
 @media (max-width: 768px) {
   .auth-page {
     align-items: flex-start;
@@ -1192,18 +1233,6 @@ ul {
 }
 
 @media (max-width: 480px) {
-  .container {
-    width: 92%;
-  }
-
-  .section {
-    padding: 3.5rem 0;
-  }
-
-  .hero {
-    padding: 2.5rem 0 3.5rem;
-  }
-
   .auth-brand {
     margin-bottom: 1.35rem;
   }

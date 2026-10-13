@@ -226,6 +226,15 @@ describe('sendVerification', () => {
     assert.ok(sentEmails[0].html.includes('Dear Amin,'), 'email should address applicant by surname');
   });
 
+  test('escapes applicant-provided markup in verification email HTML', async () => {
+    await sendVerification(
+      { email: 'user@example.com', surname: '<script>alert("x")</script>' },
+      '123456',
+    );
+    assert.ok(!sentEmails[0].html.includes('<script>'));
+    assert.ok(sentEmails[0].html.includes('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;'));
+  });
+
   test('normalizes Ugandan phone number before sending SMS', async () => {
     const delivery = await sendVerification(
       { email: 'user@example.com', phone: '0772123456', phoneCountryCode: '+256' },
