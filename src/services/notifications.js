@@ -4,6 +4,16 @@ const { normalizePhone } = require('../validation');
 
 let transporter;
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character]);
+}
+
 function getTransporter() {
   if (!config.smtp.host) {
     if (config.nodeEnv === 'development') {
@@ -125,8 +135,9 @@ async function sendVerification(applicant, code) {
   const surname = applicant.surname || '';
   const otherNames = applicant.otherNames || applicant.other_names || '';
   const recipientName = otherNames ? `${surname} ${otherNames}`.trim() : (surname || 'there');
+  const safeRecipientName = escapeHtml(recipientName);
   const plainMessage = `Dear ${recipientName},\n\nEAIMS verification code: ${code}. Valid for ${expiryMinutes} minutes. Do not share this code with anyone.`;
-  const htmlMessage = `<p>Dear ${recipientName},</p><p>Your EAIMS application portal verification code is:</p><p style="font-size:2em; font-weight:bold; letter-spacing:2px; padding:8px 16px; background:#f0f0f0; display:inline-block;">${code}</p><p>This code is valid for <strong>${expiryMinutes} minutes</strong>. Do not share this code with anyone.</p><p>If you did not request this, please ignore this email.</p><p>East African Institute for Management Science</p>`;
+  const htmlMessage = `<p>Dear ${safeRecipientName},</p><p>Your EAIMS application portal verification code is:</p><p style="font-size:2em; font-weight:bold; letter-spacing:2px; padding:8px 16px; background:#f0f0f0; display:inline-block;">${code}</p><p>This code is valid for <strong>${expiryMinutes} minutes</strong>. Do not share this code with anyone.</p><p>If you did not request this, please ignore this email.</p><p>East African Institute for Management Science</p>`;
   const smsMessage = `EAIMS verification code: ${code}. Valid for ${expiryMinutes} minutes. Do not share.`;
   const phone = applicant.phone || '';
   const phoneCountryCode = applicant.phoneCountryCode || applicant.phone_country_code || '+256';
@@ -147,8 +158,9 @@ async function sendVerification(applicant, code) {
 }
 
 async function sendPasswordReset(applicant, resetUrl) {
+  const safeResetUrl = escapeHtml(resetUrl);
   const plainMessage = `Reset your EAIMS password using this secure link: ${resetUrl}. The link expires in 30 minutes.`;
-  const htmlMessage = `<p>Reset your EAIMS password using this secure link:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>The link expires in 30 minutes.</p>`;
+  const htmlMessage = `<p>Reset your EAIMS password using this secure link:</p><p><a href="${safeResetUrl}">${safeResetUrl}</a></p><p>The link expires in 30 minutes.</p>`;
   const smsMessage = `Reset your EAIMS password using this secure link: ${resetUrl}. The link expires in 30 minutes.`;
   const phone = applicant.phone || '';
   const phoneCountryCode = applicant.phoneCountryCode || applicant.phone_country_code || '+256';

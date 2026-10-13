@@ -187,6 +187,28 @@ ul {
   width: auto;
 }
 
+.dashboard-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--ink);
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.dashboard-brand img {
+  display: block;
+  width: auto;
+  height: 80px;
+  object-fit: contain;
+}
+
+.dashboard-brand span {
+  color: var(--brand-dark);
+  line-height: 1;
+}
+
 /* ===== Navigation ===== */
 .nav {
   display: flex;
@@ -197,6 +219,25 @@ ul {
   display: flex;
   align-items: center;
   gap: 2rem;
+}
+
+.dashboard-header .nav-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  gap: 1.25rem;
+}
+
+.dashboard-header .nav-list a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-decoration: none;
+}
+
+.dashboard-header .nav-list i {
+  width: 1rem;
+  text-align: center;
 }
 
 .nav-list a {
@@ -546,6 +587,10 @@ ul {
     flex-direction: column;
     gap: 1rem;
     padding: 1.5rem;
+  }
+
+  .dashboard-header .nav-list {
+    align-items: stretch;
   }
 
   .nav-toggle {
@@ -1033,6 +1078,7 @@ ul {
   align-items: center;
   gap: 0.5rem;
   flex: 0 0 auto;
+  white-space: nowrap;
   padding: 0.5rem 0.8rem;
   color: var(--success);
   background: var(--success-bg);
@@ -1042,7 +1088,8 @@ ul {
   font-weight: 700;
 }
 
-.status-pill span {
+.status-pill span:first-child {
+  flex: 0 0 9px;
   width: 9px;
   height: 9px;
   background: #22c55e;
