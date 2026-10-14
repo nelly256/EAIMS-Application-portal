@@ -9,99 +9,160 @@
   <link rel="stylesheet" href="/style.css" />
   <link rel="icon" href="/favicon.png" type="image/png" />
 </head>
-<body>
-<header class="header dashboard-header">
-    <div class="container header-inner">
-      <a href="/dashboard" class="dashboard-brand" aria-label="EAIMS applicant dashboard">
-        <img src="/eaims-logo.jpeg" alt="EAIMS logo" />
+<body class="portal-dashboard-body">
+  <div class="portal-dashboard">
+    <aside class="student-sidebar" aria-label="Student portal sidebar">
+      <a href="/dashboard" class="student-brand" aria-label="EAIMS student dashboard">
+        <img src="/eaims-logo.jpeg" alt="East African Institute for Management Science logo" />
       </a>
-      <nav class="nav" id="nav" aria-label="Applicant navigation">
-        <ul class="nav-list">
-          <li><a href="#overview" data-view="overview" class="is-active"><i class="fas fa-home"></i> Dashboard</a></li>
-          <li><a href="#profile" data-view="profile"><i class="fas fa-user"></i> Profile</a></li>
-          <li><button id="logoutButton" class="btn btn-outline" type="button"><i class="fas fa-sign-out-alt"></i> Log out</button></li>
-        </ul>
-        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-controls="nav" aria-expanded="false">
-          <span class="bar"></span><span class="bar"></span><span class="bar"></span>
-        </button>
+      <p class="sidebar-section-label">STUDENT PORTAL NAVIGATION</p>
+      <nav class="student-navigation" aria-label="Student portal navigation">
+        <a class="sidebar-link is-active" href="#overview" data-view="overview" aria-current="page"><i class="fas fa-house" aria-hidden="true"></i><span>Dashboard</span></a>
+        <a class="sidebar-link" href="/my-application"><i class="fas fa-file-lines" aria-hidden="true"></i><span>My Application</span></a>
+        <a class="sidebar-link" href="/track-application"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>Track My Application</span></a>
+        <a class="sidebar-link" href="#documents"><i class="fas fa-folder" aria-hidden="true"></i><span>Documents</span></a>
+        <a class="sidebar-link" href="#profile" data-view="profile"><i class="fas fa-user" aria-hidden="true"></i><span>Profile</span></a>
       </nav>
-    </div>
-  </header>
-
-  <main class="dashboard-page">
-    <div class="container">
-      <div class="dashboard-heading">
-        <div>
-          <p class="eyebrow">APPLICANT PORTAL</p>
-          <h1>Welcome, <span id="applicantName">Applicant</span></h1>
-          <p>Track your account and online application from one place.</p>
-        </div>
-        <div class="status-pill"><span aria-hidden="true"></span><span id="verificationStatus">Account verified</span></div>
+      <div class="sidebar-bottom">
+        <button id="logoutButton" class="sidebar-logout" type="button"><i class="fas fa-right-from-bracket" aria-hidden="true"></i> Log out</button>
       </div>
+    </aside>
 
-      <div id="dashboardError" class="form-message form-message-error" role="alert" hidden></div>
+    <div class="dashboard-workspace">
+      <header class="student-topbar">
+        <div class="topbar-title">
+          <p>STUDENT PORTAL</p>
+          <h1 id="viewTitle">Dashboard</h1>
+        </div>
+        <div class="student-identity">
+          <div class="student-identity-copy">
+            <strong id="headerApplicantName">Applicant</strong>
+            <span>Student</span>
+          </div>
+          <span class="student-avatar" id="applicantInitials" aria-hidden="true">AP</span>
+        </div>
+      </header>
 
-      <div id="dashboardContent" hidden>
-      <section id="overview" class="dashboard-view">
-        <div class="stat-grid">
-          <div class="stat-card"><span class="stat-icon"><i class="fas fa-shield-alt"></i></span><div><p>Account</p><strong id="statAccount">Verified</strong></div></div>
-          <div class="stat-card"><span class="stat-icon"><i class="fas fa-file-alt"></i></span><div><p>Application</p><strong>Not started</strong></div></div>
-          <div class="stat-card"><span class="stat-icon"><i class="fas fa-calendar-alt"></i></span><div><p>Intake</p><strong>Opening soon</strong></div></div>
-        </div>
-        <div class="dashboard-grid">
-        <section class="dashboard-card dashboard-card-application" id="application">
-          <div class="card-heading">
-            <div>
-              <p class="eyebrow">APPLICATION ACCESS</p>
-              <h2>Continue when applications open</h2>
-            </div>
-            <i class="fas fa-file-alt"></i>
-          </div>
-          <div class="application-status">
-            <span class="status-icon"><i class="fas fa-check-circle"></i></span>
-            <div>
-              <h3>Account verified</h3>
-              <p>Your verified account is ready for the application process.</p>
-            </div>
-          </div>
-        </section>
-        <section class="dashboard-card quick-card">
-          <div class="card-heading">
-            <div>
-              <p class="eyebrow">QUICK ACTIONS</p>
-              <h2>Your account</h2>
-            </div>
-            <i class="fas fa-bolt"></i>
-          </div>
-          <a class="btn btn-primary btn-block" href="#profile" data-view="profile"><i class="fas fa-user"></i> View profile</a>
-        </section>
-        </div>
-      </section>
+      <main class="dashboard-main">
+        <div id="dashboardError" class="form-message form-message-error" role="alert" hidden></div>
+        <div id="dashboardContent" hidden>
+          <section class="student-welcome" aria-labelledby="welcomeHeading">
+            <h2 id="welcomeHeading">Welcome back, <span id="applicantFirstName">Applicant</span></h2>
+            <p>Track your application progress and manage your admission journey.</p>
+          </section>
 
-      <section class="dashboard-view" id="profile" hidden>
-        <div class="dashboard-card dashboard-card-profile">
-          <div class="profile-banner">
-            <span class="avatar" id="applicantInitials" aria-hidden="true"></span>
-            <div>
-              <p class="eyebrow">APPLICANT PROFILE</p>
-              <h2 id="profileHeading">Your details</h2>
-            </div>
-          </div>
-          <dl class="profile-list">
-            <div><dt>Full name</dt><dd id="applicantNameDetail"></dd></div>
-            <div><dt>Email address</dt><dd id="applicantEmail"></dd></div>
-            <div><dt>Phone number</dt><dd id="applicantPhone"></dd></div>
-            <div><dt>Nationality</dt><dd id="applicantNationality"></dd></div>
-            <div><dt>Date of birth</dt><dd id="applicantDob"></dd></div>
-          </dl>
+          <section class="dashboard-overview" aria-label="Application overview">
+            <article class="portal-panel application-progress-panel" id="progress">
+              <div class="panel-heading-row">
+                <div class="panel-heading-icon application-icon"><i class="fas fa-clipboard-check" aria-hidden="true"></i></div>
+                <div class="panel-heading-copy">
+                  <h2>Application status</h2>
+                  <p id="applicationStatusText">Personal information in progress</p>
+                </div>
+                <span class="application-state is-in-progress" id="applicationStateLabel"><span></span>In progress</span>
+              </div>
+              <div class="profile-progress-heading">
+                <span>Profile completion</span>
+                <span id="profileProgressCount">0 of 7 details</span>
+              </div>
+              <div class="progress-track" role="progressbar" aria-label="Profile completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="profileProgress">
+                <span id="profileProgressBar"></span>
+              </div>
+              <div class="profile-progress-foot">
+                <span id="profileCompletionLabel">Complete your profile details to get started.</span>
+                <strong id="profileCompletionPercent">0%</strong>
+              </div>
+            </article>
+
+            <article class="portal-panel next-step-panel" id="application">
+              <div class="next-step-heading">
+                <span class="next-step-icon"><i class="fas fa-plus" aria-hidden="true"></i></span>
+                <div>
+                  <p class="panel-eyebrow">NEXT STEP</p>
+                  <h2>Continue your application</h2>
+                  <p>Complete your personal information and upload a passport photo to prepare for program selection.</p>
+                </div>
+              </div>
+              <a class="continue-application" href="/my-application">Continue to My Application <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+            </article>
+          </section>
+
+          <section class="dashboard-shortcuts" aria-label="Portal shortcuts">
+            <a class="shortcut-panel" href="/my-application">
+              <span class="shortcut-icon application-shortcut-icon"><i class="fas fa-file-lines" aria-hidden="true"></i></span>
+              <span><strong>My Application</strong><small>Continue when applications open</small></span>
+            </a>
+            <a class="shortcut-panel" href="#documents">
+              <span class="shortcut-icon documents-shortcut-icon"><i class="fas fa-folder-open" aria-hidden="true"></i></span>
+              <span><strong>Documents</strong><small id="documentSummary">Passport photo not uploaded</small></span>
+            </a>
+            <a class="shortcut-panel" href="#profile" data-view="profile">
+              <span class="shortcut-icon profile-shortcut-icon"><i class="fas fa-user" aria-hidden="true"></i></span>
+              <span><strong>Personal details</strong><small>Review your account information</small></span>
+            </a>
+          </section>
+
+          <section class="dashboard-detail-grid">
+            <article class="portal-panel checklist-panel">
+              <header class="detail-panel-header">
+                <h2><span class="checklist-title-icon"><i class="fas fa-check" aria-hidden="true"></i></span>Application checklist</h2>
+              </header>
+              <ul class="application-checklist">
+                <li class="checklist-item is-complete" id="personalInfoChecklist">
+                  <span class="checklist-state"><i class="fas fa-check" aria-hidden="true"></i></span>
+                  <span class="checklist-copy"><strong>Personal information</strong><small id="personalInfoChecklistDescription">Complete your application profile</small></span>
+                  <span class="checklist-status" id="personalInfoChecklistStatus">In progress</span>
+                </li>
+                <li class="checklist-item">
+                  <span class="checklist-state" aria-hidden="true"></span>
+                  <span class="checklist-copy"><strong>Supporting documents</strong><small>Documents can be added when applications open</small></span>
+                  <span class="checklist-status">Upcoming</span>
+                </li>
+                <li class="checklist-item">
+                  <span class="checklist-state" aria-hidden="true"></span>
+                  <span class="checklist-copy"><strong>Program selection</strong><small>Choose a program during your application</small></span>
+                  <span class="checklist-status">Upcoming</span>
+                </li>
+                <li class="checklist-item">
+                  <span class="checklist-state" aria-hidden="true"></span>
+                  <span class="checklist-copy"><strong>Application submission</strong><small>Submit when all application steps are complete</small></span>
+                  <span class="checklist-status">Upcoming</span>
+                </li>
+              </ul>
+            </article>
+
+            <article class="portal-panel recent-documents-panel" id="documents">
+              <header class="detail-panel-header">
+                <h2><i class="fas fa-file-lines documents-title-icon" aria-hidden="true"></i>Recent documents</h2>
+              </header>
+              <div class="documents-empty-state">
+                <span><i class="fas fa-folder-open" aria-hidden="true"></i></span>
+                <h3>No documents yet</h3>
+                <p>Documents will appear here when uploads are available for your application.</p>
+              </div>
+            </article>
+          </section>
+
+          <section class="portal-panel applicant-profile-panel dashboard-view" id="profile" hidden>
+            <header class="detail-panel-header">
+              <h2><i class="fas fa-user profile-title-icon" aria-hidden="true"></i>Personal information</h2>
+              <span class="profile-verified"><i class="fas fa-circle-check" aria-hidden="true"></i> Verified account</span>
+            </header>
+            <dl class="profile-list">
+              <div><dt>Full name</dt><dd id="applicantNameDetail"></dd></div>
+              <div><dt>Email address</dt><dd id="applicantEmail"></dd></div>
+              <div><dt>Phone number</dt><dd id="applicantPhone"></dd></div>
+              <div><dt>Nationality</dt><dd id="applicantNationality"></dd></div>
+              <div><dt>Date of birth</dt><dd id="applicantDob"></dd></div>
+            </dl>
+          </section>
         </div>
-      </section>
-      </div>
+      </main>
+
+      <footer class="portal-footer">&copy; 2026 EAIMS. All Rights Reserved.</footer>
     </div>
-  </main>
-
-  <footer class="auth-footer dashboard-footer"><p>&copy; 2026 EAIMS. All Rights Reserved.</p></footer>
-  <script src="/js/auth-client.js"></script>
+  </div>
+  <script src="/js/auth-client.js?v=2"></script>
   <script src="/js/nav.js"></script>
   <script src="/js/dashboard.js"></script>
 </body>
