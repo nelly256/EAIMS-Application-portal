@@ -116,7 +116,7 @@ app.get('/dashboard', requireAuth, requireVerified, (req, res) => sendFile(res, 
 app.get('/style.css', (req, res) => sendFile(res, 'style.css'));
 app.get('/favicon.svg', (req, res) => sendFile(res, 'favicon.svg'));
 app.get('/favicon.png', (req, res) => sendFile(res, 'favicon.png'));
-app.get('/eaims-logo.jpeg', (req, res) => sendFile(res, path.join('src', 'EAIMS logo.jpeg')));
+app.get('/eaims-logo.jpeg', (req, res) => sendFile(res, 'eaims-logo.jpeg'));
 app.get(/\.(jpe?g|png|gif|ico|webp)$/i, (req, res, next) => {
   res.sendFile(req.path, { root: __dirname }, (err) => {
     if (err) next();

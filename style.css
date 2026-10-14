@@ -927,6 +927,22 @@ ul {
   height: 20px;
 }
 
+.password-toggle .icon-eye-off {
+  display: none;
+}
+
+.password-toggle[aria-pressed="true"] .icon-eye {
+  display: none;
+}
+
+.password-toggle[aria-pressed="true"] .icon-eye-off {
+  display: block;
+}
+
+.password-toggle [hidden] {
+  display: none;
+}
+
 .field-error {
   margin: 0.4rem 0 0;
   color: var(--error);
@@ -1199,6 +1215,82 @@ ul {
 .dashboard-footer {
   margin-top: auto;
 }
+
+.dashboard-view[hidden] { display: none; }
+
+.dashboard-heading {
+  padding: 1.75rem 2rem;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f172a, #1e3a5f);
+  border-radius: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.dashboard-heading h1,
+.dashboard-heading p:not(.eyebrow),
+.dashboard-heading .eyebrow { color: #ffffff; }
+.dashboard-heading .eyebrow { opacity: 0.75; }
+.dashboard-heading p:not(.eyebrow) { opacity: 0.85; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.9rem;
+  box-shadow: var(--shadow);
+}
+
+.stat-card p { margin: 0; color: var(--muted); font-size: 0.8rem; }
+.stat-card strong { color: var(--ink); font-size: 1.05rem; }
+
+.stat-icon {
+  display: flex;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--brand-dark);
+  background: var(--surface-soft);
+  border-radius: 0.75rem;
+}
+
+.profile-banner {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.profile-banner h2 { margin: 0; font-size: 1.35rem; }
+
+.avatar {
+  display: flex;
+  flex: 0 0 64px;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  border-radius: 50%;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.dashboard-header .nav-list a.is-active { font-weight: 700; color: var(--brand-dark); }
 
 /* ===== Auth Pages Media Queries ===== */
 @media (max-width: 768px) {

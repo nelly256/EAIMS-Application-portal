@@ -13,13 +13,12 @@
 <header class="header dashboard-header">
     <div class="container header-inner">
       <a href="/dashboard" class="dashboard-brand" aria-label="EAIMS applicant dashboard">
-        <img src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" />
+        <img src="/eaims-logo.jpeg" alt="EAIMS logo" />
       </a>
       <nav class="nav" id="nav" aria-label="Applicant navigation">
         <ul class="nav-list">
-          <li><a href="/dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
-          <li><a href="/dashboard#profile"><i class="fas fa-user"></i> Profile</a></li>
-          <li><a href="/dashboard#application"><i class="fas fa-file-alt"></i> Application</a></li>
+          <li><a href="#overview" data-view="overview" class="is-active"><i class="fas fa-home"></i> Dashboard</a></li>
+          <li><a href="#profile" data-view="profile"><i class="fas fa-user"></i> Profile</a></li>
           <li><button id="logoutButton" class="btn btn-outline" type="button"><i class="fas fa-sign-out-alt"></i> Log out</button></li>
         </ul>
         <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-controls="nav" aria-expanded="false">
@@ -35,31 +34,21 @@
         <div>
           <p class="eyebrow">APPLICANT PORTAL</p>
           <h1>Welcome, <span id="applicantName">Applicant</span></h1>
-          <p>Review your account details and track your online application.</p>
+          <p>Track your account and online application from one place.</p>
         </div>
         <div class="status-pill"><span aria-hidden="true"></span><span id="verificationStatus">Account verified</span></div>
       </div>
 
       <div id="dashboardError" class="form-message form-message-error" role="alert" hidden></div>
 
-      <div id="dashboardContent" class="dashboard-grid" hidden>
-        <section class="dashboard-card dashboard-card-profile" id="profile">
-          <div class="card-heading">
-            <div>
-              <p class="eyebrow">APPLICANT PROFILE</p>
-              <h2>Your details</h2>
-            </div>
-            <i class="fas fa-user-circle"></i>
-          </div>
-          <dl class="profile-list">
-            <div><dt>Full name</dt><dd id="applicantNameDetail"></dd></div>
-            <div><dt>Email address</dt><dd id="applicantEmail"></dd></div>
-            <div><dt>Phone number</dt><dd id="applicantPhone"></dd></div>
-            <div><dt>Nationality</dt><dd id="applicantNationality"></dd></div>
-            <div><dt>Date of birth</dt><dd id="applicantDob"></dd></div>
-          </dl>
-        </section>
-
+      <div id="dashboardContent" hidden>
+      <section id="overview" class="dashboard-view">
+        <div class="stat-grid">
+          <div class="stat-card"><span class="stat-icon"><i class="fas fa-shield-alt"></i></span><div><p>Account</p><strong id="statAccount">Verified</strong></div></div>
+          <div class="stat-card"><span class="stat-icon"><i class="fas fa-file-alt"></i></span><div><p>Application</p><strong>Not started</strong></div></div>
+          <div class="stat-card"><span class="stat-icon"><i class="fas fa-calendar-alt"></i></span><div><p>Intake</p><strong>Opening soon</strong></div></div>
+        </div>
+        <div class="dashboard-grid">
         <section class="dashboard-card dashboard-card-application" id="application">
           <div class="card-heading">
             <div>
@@ -75,8 +64,38 @@
               <p>Your verified account is ready for the application process.</p>
             </div>
           </div>
-          <a class="btn btn-primary btn-block" href="#profile">Review your profile</a>
         </section>
+        <section class="dashboard-card quick-card">
+          <div class="card-heading">
+            <div>
+              <p class="eyebrow">QUICK ACTIONS</p>
+              <h2>Your account</h2>
+            </div>
+            <i class="fas fa-bolt"></i>
+          </div>
+          <a class="btn btn-primary btn-block" href="#profile" data-view="profile"><i class="fas fa-user"></i> View profile</a>
+        </section>
+        </div>
+      </section>
+
+      <section class="dashboard-view" id="profile" hidden>
+        <div class="dashboard-card dashboard-card-profile">
+          <div class="profile-banner">
+            <span class="avatar" id="applicantInitials" aria-hidden="true"></span>
+            <div>
+              <p class="eyebrow">APPLICANT PROFILE</p>
+              <h2 id="profileHeading">Your details</h2>
+            </div>
+          </div>
+          <dl class="profile-list">
+            <div><dt>Full name</dt><dd id="applicantNameDetail"></dd></div>
+            <div><dt>Email address</dt><dd id="applicantEmail"></dd></div>
+            <div><dt>Phone number</dt><dd id="applicantPhone"></dd></div>
+            <div><dt>Nationality</dt><dd id="applicantNationality"></dd></div>
+            <div><dt>Date of birth</dt><dd id="applicantDob"></dd></div>
+          </dl>
+        </div>
+      </section>
       </div>
     </div>
   </main>

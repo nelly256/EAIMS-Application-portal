@@ -12,7 +12,7 @@
   <main class="auth-page">
     <div class="auth-page-inner">
       <section class="auth-brand" aria-label="EAIMS Online Application Portal">
-        <img class="brand-logo" src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" />
+        <img class="brand-logo" src="/eaims-logo.jpeg" alt="EAIMS logo" />
       </section>
 
       <section class="auth-card auth-card-login" aria-labelledby="login-title">
@@ -38,8 +38,8 @@
               <i class="fas fa-lock input-icon"></i>
               <input id="password" name="password" type="password" placeholder="Password" autocomplete="current-password" required />
               <button class="password-toggle" type="button" aria-controls="password" aria-label="Show password" aria-pressed="false">
-                <i class="fas fa-eye"></i>
-                <i class="fas fa-eye-slash" hidden></i>
+                <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18"/><path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17.4 17.4 0 0 1-2.2 2.9M6.6 6.6C3.7 8.3 2 12 2 12s3.5 7 10 7c1.5 0 2.8-.3 4-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
               </button>
             </div>
             <p class="field-error" data-field-error="password" hidden></p>
@@ -62,7 +62,7 @@
     <p>&copy; 2026 EAIMS. All Rights Reserved.</p>
   </footer>
 
-  <script src="/js/auth-client.js"></script>
+  <script src="/js/auth-client.js?v=2"></script>
   <script src="/js/login.js"></script>
 </body>
 </html>

@@ -108,8 +108,8 @@ function initPasswordToggles(root = document) {
       const show = input.type === 'password';
       input.type = show ? 'text' : 'password';
       button.setAttribute('aria-pressed', String(show));
-      const eyeIcon = button.querySelector('.fa-eye');
-      const eyeSlashIcon = button.querySelector('.fa-eye-slash');
+      const eyeIcon = button.querySelector('.icon-eye, .fa-eye');
+      const eyeSlashIcon = button.querySelector('.icon-eye-off, .fa-eye-slash');
       if (eyeIcon) eyeIcon.hidden = show;
       if (eyeSlashIcon) eyeSlashIcon.hidden = !show;
       button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
