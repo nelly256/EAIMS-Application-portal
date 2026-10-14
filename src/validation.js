@@ -184,4 +184,6 @@ module.exports = {
   validateLogin,
   validateOtp,
   validatePasswordReset,
+  validDate,
+  validName,
 };

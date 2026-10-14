@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Track your EAIMS application progress" />
+  <title>Track My Application | EAIMS Online Application Portal</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" href="/favicon.png" type="image/png" />
+</head>
+<body class="portal-dashboard-body tracking-page-body">
+  <div class="portal-dashboard">
+    <aside class="student-sidebar" aria-label="Student portal sidebar">
+      <a href="/dashboard" class="student-brand" aria-label="EAIMS student dashboard">
+        <img src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" />
+      </a>
+      <p class="sidebar-section-label">STUDENT PORTAL NAVIGATION</p>
+      <nav class="student-navigation" aria-label="Student portal navigation">
+        <a class="sidebar-link" href="/dashboard"><i class="fas fa-house" aria-hidden="true"></i><span>Dashboard</span></a>
+        <a class="sidebar-link" href="/my-application"><i class="fas fa-file-lines" aria-hidden="true"></i><span>My Application</span></a>
+        <a class="sidebar-link is-active" href="/track-application" aria-current="page"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>Track My Application</span></a>
+        <a class="sidebar-link" href="/my-application#documents"><i class="fas fa-folder" aria-hidden="true"></i><span>Documents</span></a>
+      </nav>
+      <div class="sidebar-bottom">
+        <button id="logoutButton" class="sidebar-logout" type="button"><i class="fas fa-right-from-bracket" aria-hidden="true"></i> Log out</button>
+      </div>
+    </aside>
+
+    <div class="dashboard-workspace">
+      <header class="student-topbar">
+        <div class="topbar-title">
+          <p>STUDENT PORTAL</p>
+          <h1><i class="fas fa-location-dot" aria-hidden="true"></i> Track Application</h1>
+        </div>
+        <div class="student-identity">
+          <div class="student-identity-copy">
+            <strong id="headerApplicantName">Applicant</strong>
+            <span>Student</span>
+          </div>
+          <span class="student-avatar" id="applicantInitials" aria-hidden="true">AP</span>
+        </div>
+      </header>
+
+      <main class="tracking-main">
+        <div id="trackingError" class="form-message form-message-error" role="alert" hidden></div>
+        <div id="trackingContent" hidden>
+          <section class="tracking-hero" aria-labelledby="trackingHeading">
+            <h2 id="trackingHeading"><i class="fas fa-location-dot" aria-hidden="true"></i> Track Your Application</h2>
+            <p>Monitor the progress of your application in real-time.</p>
+            <div class="tracking-hero-meta">
+              <span><i class="fas fa-hashtag" aria-hidden="true"></i> <span id="applicationReference">Draft application</span></span>
+              <span class="tracking-state"><i class="fas fa-pen-to-square" aria-hidden="true"></i> <span id="applicationState">Not submitted</span></span>
+            </div>
+          </section>
+
+          <section class="tracking-summary" aria-label="Application summary">
+            <article class="tracking-summary-card">
+              <span class="tracking-summary-icon submitted-icon"><i class="fas fa-calendar-days" aria-hidden="true"></i></span>
+              <div><p>Submitted On</p><strong id="submittedOn">Not yet</strong></div>
+            </article>
+            <article class="tracking-summary-card">
+              <span class="tracking-summary-icon documents-icon"><i class="fas fa-folder" aria-hidden="true"></i></span>
+              <div><p>Documents</p><strong id="documentsUploaded">0 Uploaded</strong></div>
+            </article>
+            <article class="tracking-summary-card">
+              <span class="tracking-summary-icon current-status-icon"><i class="fas fa-clipboard-check" aria-hidden="true"></i></span>
+              <div><p>Current Status</p><strong id="currentStatus">Profile in progress</strong></div>
+            </article>
+          </section>
+
+          <section class="tracking-panel" aria-labelledby="progressTitle">
+            <header class="tracking-panel-heading">
+              <h2 id="progressTitle"><i class="fas fa-list-check" aria-hidden="true"></i> Application Progress</h2>
+            </header>
+            <ol class="tracking-timeline">
+              <li class="timeline-item" id="timelinePersonalInfo">
+                <span class="timeline-marker"><i class="fas fa-user-pen" aria-hidden="true"></i></span>
+                <div><h3>Personal Information</h3><p id="timelinePersonalInfoText">Complete your applicant profile to continue.</p></div>
+                <span class="timeline-status" id="timelinePersonalInfoStatus">In progress</span>
+              </li>
+              <li class="timeline-item" id="timelineProgram">
+                <span class="timeline-marker"><i class="fas fa-paper-plane" aria-hidden="true"></i></span>
+                <div><h3>Program Selection</h3><p>Select your program after completing personal information.</p></div>
+                <span class="timeline-status">Not started</span>
+              </li>
+              <li class="timeline-item" id="timelineDocuments">
+                <span class="timeline-marker"><i class="fas fa-folder-open" aria-hidden="true"></i></span>
+                <div><h3>Document Verification</h3><p>Required documents will be checked after submission.</p></div>
+                <span class="timeline-status">Upcoming</span>
+              </li>
+              <li class="timeline-item" id="timelineReview">
+                <span class="timeline-marker"><i class="fas fa-user-check" aria-hidden="true"></i></span>
+                <div><h3>Application Review</h3><p>The admissions team will review your submitted application.</p></div>
+                <span class="timeline-status">Upcoming</span>
+              </li>
+              <li class="timeline-item" id="timelineDecision">
+                <span class="timeline-marker"><i class="fas fa-gavel" aria-hidden="true"></i></span>
+                <div><h3>Decision</h3><p>Your admission decision will appear here when available.</p></div>
+                <span class="timeline-status">Upcoming</span>
+              </li>
+            </ol>
+
+            <section class="tracking-activity" aria-labelledby="activityTitle">
+              <h2 id="activityTitle"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i> Recent Activity</h2>
+              <p id="recentActivity">No application activity yet.</p>
+              <time id="recentActivityDate" hidden></time>
+            </section>
+          </section>
+        </div>
+      </main>
+      <footer class="portal-footer">&copy; 2026 EAIMS. All Rights Reserved.</footer>
+    </div>
+  </div>
+
+  <script src="/js/auth-client.js"></script>
+  <script src="/js/tracking.js"></script>
+</body>
+</html>

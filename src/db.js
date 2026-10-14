@@ -84,6 +84,21 @@ CREATE TABLE IF NOT EXISTS password_resets (
 CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token);
 CREATE INDEX IF NOT EXISTS idx_password_resets_applicant ON password_resets(applicant_id, used, expires_at);
 
+CREATE TABLE IF NOT EXISTS application_profiles (
+  applicant_id INTEGER PRIMARY KEY,
+  first_name TEXT NOT NULL DEFAULT '',
+  last_name TEXT NOT NULL DEFAULT '',
+  id_number TEXT NOT NULL DEFAULT '',
+  country_of_birth TEXT NOT NULL DEFAULT '',
+  date_of_birth TEXT NOT NULL DEFAULT '',
+  gender TEXT NOT NULL DEFAULT '',
+  physical_address TEXT NOT NULL DEFAULT '',
+  passport_photo BLOB,
+  passport_photo_mime TEXT,
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
   sid TEXT PRIMARY KEY,
   data TEXT NOT NULL,

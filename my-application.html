@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Complete your EAIMS application profile" />
+  <title>My Application | EAIMS Online Application Portal</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" href="/favicon.png" type="image/png" />
+</head>
+<body class="portal-dashboard-body application-page-body">
+  <div class="portal-dashboard application-portal-dashboard">
+    <aside class="student-sidebar" aria-label="Student portal sidebar">
+      <a href="/dashboard" class="student-brand" aria-label="EAIMS student dashboard">
+        <img src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" />
+      </a>
+      <p class="sidebar-section-label">STUDENT PORTAL NAVIGATION</p>
+      <nav class="student-navigation" aria-label="Student portal navigation">
+        <a class="sidebar-link" href="/dashboard"><i class="fas fa-house" aria-hidden="true"></i><span>Dashboard</span></a>
+        <a class="sidebar-link is-active" href="/my-application" aria-current="page"><i class="fas fa-file-lines" aria-hidden="true"></i><span>My Application</span></a>
+        <a class="sidebar-link" href="/track-application"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>Track My Application</span></a>
+        <a class="sidebar-link" href="/my-application#documents"><i class="fas fa-folder" aria-hidden="true"></i><span>Documents</span></a>
+      </nav>
+      <div class="sidebar-bottom">
+        <button id="logoutButton" class="sidebar-logout" type="button"><i class="fas fa-right-from-bracket" aria-hidden="true"></i> Log out</button>
+      </div>
+    </aside>
+
+    <div class="dashboard-workspace application-workspace">
+      <main class="application-content">
+        <header class="application-masthead">
+          <div class="application-hero-copy">
+      <p class="application-number" id="applicationReference"><i class="fas fa-pen-to-square" aria-hidden="true"></i> Applicant registration</p>
+      <h1>Complete Your Registration in 3 Simple Steps</h1>
+      <p>Fill in your details below. Your progress is automatically saved as you type.</p>
+      <ol class="application-stepper" id="progress" aria-label="Application steps">
+        <li class="step-current" aria-current="step">
+          <span class="step-marker">1</span>
+          <strong>Personal Info</strong>
+          <small>Current step</small>
+        </li>
+        <li>
+          <span class="step-marker">2</span>
+          <strong>Program Selection</strong>
+          <small>Not started</small>
+        </li>
+        <li>
+          <span class="step-marker">3</span>
+          <strong>Document Upload</strong>
+          <small>Not started</small>
+        </li>
+      </ol>
+    </div>
+      </header>
+
+    <div class="application-main">
+    <div id="applicationError" class="form-message form-message-error" role="alert" hidden></div>
+    <div id="applicationSuccess" class="application-save-message" role="status" aria-live="polite" hidden></div>
+
+    <form id="applicationProfileForm" class="application-form" novalidate>
+      <section class="application-section" aria-labelledby="personalInfoTitle">
+        <header class="application-section-header">
+          <h2 id="personalInfoTitle"><i class="fas fa-circle-user" aria-hidden="true"></i> Personal Information</h2>
+          <span class="application-progress-tag is-in-progress" id="applicationProgressTag"><span></span>In Progress</span>
+        </header>
+        <div class="application-section-content">
+          <div class="application-autosave-note">
+            <i class="fas fa-pen" aria-hidden="true"></i>
+            <div><strong>Auto-save enabled</strong><p>Your information is automatically saved as you fill in each field. Click any field to edit it and it will be saved when you move to another field.</p></div>
+            <span id="saveState" class="save-state">All changes saved</span>
+          </div>
+
+          <div class="application-field-group">
+            <h3><i class="fas fa-address-card" aria-hidden="true"></i> Basic Details</h3>
+            <div class="application-fields-grid">
+              <div class="application-field">
+                <label for="firstName">First Name <span>*</span></label>
+                <input id="firstName" name="firstName" autocomplete="given-name" required />
+                <p class="application-field-error" data-error-for="firstName" hidden></p>
+              </div>
+              <div class="application-field">
+                <label for="lastName">Last Name <span>*</span></label>
+                <input id="lastName" name="lastName" autocomplete="family-name" required />
+                <p class="application-field-error" data-error-for="lastName" hidden></p>
+              </div>
+              <div class="application-field application-field-wide">
+                <label for="idNumber">ID/Passport Number <span>*</span></label>
+                <input id="idNumber" name="idNumber" autocomplete="off" placeholder="Enter your National ID or Passport number" maxlength="40" required />
+                <p class="application-field-help"><i class="fas fa-circle-info" aria-hidden="true"></i> National ID or valid Passport number</p>
+                <p class="application-field-error" data-error-for="idNumber" hidden></p>
+              </div>
+              <div class="application-field">
+                <label for="email">Email Address <small class="verified-label"><i class="fas fa-circle-check" aria-hidden="true"></i> Verified</small></label>
+                <input id="email" name="email" type="email" readonly aria-describedby="emailLocked" />
+                <p class="application-field-help" id="emailLocked"><i class="fas fa-shield-halved" aria-hidden="true"></i> Email is locked for security</p>
+              </div>
+              <div class="application-field">
+                <label for="phone">Phone Number <small class="verified-label"><i class="fas fa-circle-check" aria-hidden="true"></i> Verified</small></label>
+                <input id="phone" name="phone" type="tel" readonly aria-describedby="phoneLocked" />
+                <p class="application-field-help" id="phoneLocked"><i class="fas fa-shield-halved" aria-hidden="true"></i> Phone is locked for security</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="application-field-group application-personal-group">
+            <h3><i class="fas fa-globe-africa" aria-hidden="true"></i> Personal Details</h3>
+            <div class="application-fields-grid">
+              <div class="application-field">
+                <label for="countryOfBirth">Country of Birth <span>*</span></label>
+                <select id="countryOfBirth" name="countryOfBirth" required>
+                  <option value="">Select your country</option>
+                </select>
+                <p class="application-field-error" data-error-for="countryOfBirth" hidden></p>
+              </div>
+              <div class="application-field">
+                <label for="dateOfBirth">Date of Birth <span>*</span></label>
+                <input id="dateOfBirth" name="dateOfBirth" type="date" autocomplete="bday" required />
+                <p class="application-field-help"><i class="fas fa-circle-info" aria-hidden="true"></i> You must be at least 16 years old to apply</p>
+                <p class="application-field-error" data-error-for="dateOfBirth" hidden></p>
+              </div>
+              <fieldset class="application-field application-gender-field application-field-wide">
+                <legend>Gender <span>*</span></legend>
+                <div class="application-gender-options">
+                  <label class="gender-option" for="genderMale"><input id="genderMale" type="radio" name="gender" value="MALE" /><span class="gender-icon"><i class="fas fa-person" aria-hidden="true"></i></span><strong>Male</strong></label>
+                  <label class="gender-option" for="genderFemale"><input id="genderFemale" type="radio" name="gender" value="FEMALE" /><span class="gender-icon"><i class="fas fa-person-dress" aria-hidden="true"></i></span><strong>Female</strong></label>
+                </div>
+                <p class="application-field-error" data-error-for="gender" hidden></p>
+              </fieldset>
+            </div>
+          </div>
+
+          <div class="application-field-group application-address-group">
+            <h3><i class="fas fa-location-dot" aria-hidden="true"></i> Address</h3>
+            <div class="application-field">
+              <label for="physicalAddress">Physical Address <span>*</span></label>
+              <textarea id="physicalAddress" name="physicalAddress" rows="3" maxlength="500" placeholder="Enter your complete physical address including street, city, and postal code" required></textarea>
+              <p class="application-field-help"><i class="fas fa-circle-info" aria-hidden="true"></i> Include P.O. Box if applicable</p>
+              <p class="application-field-error" data-error-for="physicalAddress" hidden></p>
+            </div>
+          </div>
+
+          <div class="application-field-group application-photo-group" id="documents">
+            <h3><i class="fas fa-camera" aria-hidden="true"></i> Passport Photo</h3>
+            <div class="photo-upload-layout">
+              <div class="passport-photo-preview" id="passportPhotoPreview"><i class="fas fa-user" aria-hidden="true"></i></div>
+              <label class="photo-dropzone" for="passportPhoto">
+                <i class="fas fa-cloud-arrow-up" aria-hidden="true"></i>
+                <span><strong>Drag and drop</strong> your photo here, or click to browse</span>
+                <span class="photo-upload-button">Choose Photo</span>
+                <input id="passportPhoto" name="passportPhoto" type="file" accept="image/jpeg,image/png" hidden />
+              </label>
+            </div>
+            <p class="application-field-help"><i class="fas fa-circle-info" aria-hidden="true"></i> Upload a clear, passport-style photo (JPG, PNG, max 5 MB)</p>
+            <p class="application-field-error" data-error-for="passportPhoto" hidden></p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="application-actions">
+        <p id="nextStepHelp">Program selection will be available when applications open.</p>
+        <button class="application-continue-button" id="continueProgramButton" type="button" disabled>Continue to Program Selection <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+      </footer>
+    </form>
+  </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/auth-client.js"></script>
+  <script src="/js/application.js"></script>
+</body>
+</html>

@@ -5,52 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Create an EAIMS online application account" />
   <title>Create Account | EAIMS Online Application Portal</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="/style.css" />
   <link rel="icon" href="/favicon.png" type="image/png" />
 </head>
-<body class="auth-page-body">
-  <main class="auth-page">
-    <div class="auth-page-inner">
-      <section class="auth-brand" aria-label="EAIMS Online Application Portal">
-        <img class="brand-logo" src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" />
-      </section>
+<body class="auth-page-body register-page-body">
+  <main class="auth-page register-page">
+    <section class="register-visual" aria-label="EAIMS graduate community">
+      <img class="register-visual-image" src="/grad2.jpeg" alt="EAIMS graduate celebrating her achievement" />
+      <div class="register-visual-copy">
+        <p class="register-kicker">EAST AFRICAN INSTITUTE FOR MANAGEMENT SCIENCE</p>
+        <h1>Your next chapter starts here.</h1>
+        <p>Set up your applicant account to prepare for the application process.</p>
+      </div>
+    </section>
 
-      <section class="auth-card auth-card-register" aria-labelledby="register-title">
-        <div class="info-panel" role="note">
-          <i class="fas fa-info-circle info-icon"></i>
-          <p>Register with your names as they appear on your academic documents. Your one time password will be sent to the phone number and email address you provide here.</p>
+    <section class="register-panel" aria-label="Create an applicant account">
+      <div class="register-form-inner">
+        <section class="auth-brand register-brand" aria-label="EAIMS Online Application Portal">
+          <img class="brand-logo" src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" />
+        </section>
+
+        <section class="auth-card auth-card-register" aria-labelledby="register-title">
+        <div class="auth-header">
+          <h2 class="auth-title" id="register-title">Create your account</h2>
+          <p class="auth-subtitle">Enter your details to get started.</p>
         </div>
 
-        <div class="auth-header">
-          <h2 class="auth-title" id="register-title">CREATE YOUR ACCOUNT</h2>
-          <p class="auth-subtitle">Complete the details below to begin your application.</p>
+        <div class="info-panel" role="note">
+          <i class="fas fa-circle-info info-icon" aria-hidden="true"></i>
+          <p>Use the names shown on your academic documents. A verification code will be sent to your email and phone.</p>
         </div>
 
         <form id="registerForm" novalidate>
           <div class="form-row">
             <div class="field">
-              <label class="visually-hidden" for="surname">Surname</label>
+              <label for="surname">Surname</label>
               <div class="input-shell">
                 <i class="fas fa-user input-icon"></i>
-                <input id="surname" name="surname" type="text" placeholder="Surname" autocomplete="family-name" required />
+                <input id="surname" name="surname" type="text" placeholder="Enter your surname" autocomplete="family-name" required />
               </div>
               <p class="field-error" data-field-error="surname" hidden></p>
             </div>
             <div class="field">
-              <label class="visually-hidden" for="otherNames">Other Names</label>
+              <label for="otherNames">Other names</label>
               <div class="input-shell">
                 <i class="fas fa-user input-icon"></i>
-                <input id="otherNames" name="otherNames" type="text" placeholder="Other Names" autocomplete="given-name" required />
+                <input id="otherNames" name="otherNames" type="text" placeholder="Enter your other names" autocomplete="given-name" required />
               </div>
               <p class="field-error" data-field-error="otherNames" hidden></p>
             </div>
           </div>
 
           <div class="field">
-            <label class="visually-hidden" for="email">Email Address</label>
+            <label for="email">Email address</label>
             <div class="input-shell">
               <i class="fas fa-envelope input-icon"></i>
-              <input id="email" name="email" type="email" placeholder="Email Address" autocomplete="email" required />
+              <input id="email" name="email" type="email" placeholder="name@example.com" autocomplete="email" required />
             </div>
             <p class="field-help">An email address you have access to</p>
             <p class="field-error" data-field-error="email" hidden></p>
@@ -64,7 +75,7 @@
               </select>
               <div class="input-shell">
                 <i class="fas fa-phone input-icon"></i>
-                <input id="phoneNumber" name="phoneNumber" type="tel" inputmode="numeric" placeholder="Phone Number" autocomplete="tel-national" required />
+                <input id="phoneNumber" name="phoneNumber" type="tel" inputmode="numeric" placeholder="Enter your phone number" autocomplete="tel-national" required />
               </div>
             </div>
             <p class="field-help">Pick your country code, then enter your number</p>
@@ -73,7 +84,7 @@
           </div>
 
           <div class="field">
-            <label class="visually-hidden" for="nationality">Nationality</label>
+            <label for="nationality">Nationality</label>
             <div class="input-shell">
               <i class="fas fa-globe input-icon"></i>
               <select id="nationality" name="nationality" autocomplete="country-name" required>
@@ -85,7 +96,7 @@
 
           <div class="form-row">
             <div class="field">
-              <label class="visually-hidden" for="dateOfBirth">Date of Birth</label>
+              <label for="dateOfBirth">Date of birth</label>
               <div class="input-shell">
                 <i class="fas fa-calendar input-icon"></i>
                 <input id="dateOfBirth" name="dateOfBirth" type="date" autocomplete="bday" required />
@@ -93,7 +104,7 @@
               <p class="field-error" data-field-error="dateOfBirth" hidden></p>
             </div>
             <fieldset class="field sex-field">
-              <legend>Sex:</legend>
+              <legend>Sex</legend>
               <div class="radio-group">
                 <label class="radio-label"><input type="radio" name="sex" value="MALE" required /> MALE</label>
                 <label class="radio-label"><input type="radio" name="sex" value="FEMALE" required /> FEMALE</label>
@@ -104,10 +115,10 @@
 
           <div class="form-row">
             <div class="field">
-              <label class="visually-hidden" for="password">Create Password</label>
+              <label for="password">Password</label>
               <div class="input-shell password-shell">
                 <i class="fas fa-lock input-icon"></i>
-                <input id="password" name="password" type="password" placeholder="Create Password" autocomplete="new-password" minlength="8" required />
+                <input id="password" name="password" type="password" placeholder="Create a password" autocomplete="new-password" minlength="8" required />
                 <button class="password-toggle" type="button" aria-controls="password" aria-label="Show password" aria-pressed="false">
                   <i class="fas fa-eye"></i>
                   <i class="fas fa-eye-slash" hidden></i>
@@ -116,10 +127,10 @@
               <p class="field-error" data-field-error="password" hidden></p>
             </div>
             <div class="field">
-              <label class="visually-hidden" for="confirmPassword">Confirm Password</label>
+              <label for="confirmPassword">Confirm password</label>
               <div class="input-shell password-shell">
                 <i class="fas fa-lock input-icon"></i>
-                <input id="confirmPassword" name="confirmPassword" type="password" placeholder="Confirm Password" autocomplete="new-password" minlength="8" required />
+                <input id="confirmPassword" name="confirmPassword" type="password" placeholder="Re-enter your password" autocomplete="new-password" minlength="8" required />
                 <button class="password-toggle" type="button" aria-controls="confirmPassword" aria-label="Show password" aria-pressed="false">
                   <i class="fas fa-eye"></i>
                   <i class="fas fa-eye-slash" hidden></i>
@@ -131,17 +142,16 @@
 
           <div id="formError" class="form-message form-message-error" role="alert" hidden></div>
           <div id="formSuccess" class="form-message form-message-success" role="status" hidden></div>
-          <button class="btn btn-primary btn-lg btn-block auth-submit" type="submit">REGISTER</button>
+          <button class="btn btn-primary btn-lg btn-block auth-submit" type="submit">Create account</button>
         </form>
 
-        <p class="auth-footer-text">Already have an account? <a class="auth-link" href="/login.html">Log in</a></p>
-      </section>
-    </div>
+          <p class="auth-footer-text">Already have an account? <a class="auth-link" href="/login.html">Sign in</a></p>
+          <p class="register-home-link"><a href="/"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to home</a></p>
+        </section>
+        <footer class="register-footer"><p>&copy; 2026 EAIMS. All Rights Reserved.</p></footer>
+      </div>
+    </section>
   </main>
-
-  <footer class="auth-footer">
-    <p>&copy; 2026 EAIMS. All Rights Reserved.</p>
-  </footer>
 
   <script src="/js/auth-client.js"></script>
   <script src="/js/register.js"></script>
