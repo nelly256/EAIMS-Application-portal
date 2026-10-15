@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Manage documents for your EAIMS application" />
+  <title>Documents | EAIMS Online Application Portal</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" href="/favicon.png" type="image/png" />
+</head>
+<body class="portal-dashboard-body documents-page-body">
+  <div class="portal-dashboard">
+    <aside class="student-sidebar" aria-label="Student portal sidebar">
+      <a href="/dashboard" class="student-brand" aria-label="EAIMS student dashboard">
+        <img src="/eaims-logo.jpeg" alt="East African Institute for Management Science logo" />
+      </a>
+      <p class="sidebar-section-label">STUDENT PORTAL NAVIGATION</p>
+      <nav class="student-navigation" aria-label="Student portal navigation">
+        <a class="sidebar-link" href="/dashboard"><i class="fas fa-house" aria-hidden="true"></i><span>Dashboard</span></a>
+        <a class="sidebar-link" href="/my-application"><i class="fas fa-file-lines" aria-hidden="true"></i><span>My Application</span></a>
+        <a class="sidebar-link" href="/track-application"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>Track My Application</span></a>
+        <a class="sidebar-link is-active" href="/documents" aria-current="page"><i class="fas fa-folder" aria-hidden="true"></i><span>Documents</span></a>
+      </nav>
+      <section class="sidebar-help" aria-labelledby="sidebarHelpTitle">
+        <h2 id="sidebarHelpTitle">NEED HELP?</h2>
+        <a href="https://wa.me/256780179117" target="_blank" rel="noopener noreferrer">
+          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i><span>+256 780179117</span>
+        </a>
+        <a href="tel:+256394821776">
+          <i class="fas fa-phone" aria-hidden="true"></i><span>0394821776</span>
+        </a>
+      </section>
+      <div class="sidebar-bottom">
+        <button id="logoutButton" class="sidebar-logout" type="button"><i class="fas fa-right-from-bracket" aria-hidden="true"></i> Log out</button>
+      </div>
+    </aside>
+
+    <div class="dashboard-workspace">
+      <header class="student-topbar">
+        <div class="topbar-title">
+          <p>STUDENT PORTAL</p>
+          <h1>Documents</h1>
+        </div>
+        <div class="student-identity">
+          <div class="student-identity-copy">
+            <strong id="headerApplicantName">Applicant</strong>
+            <span>Student</span>
+          </div>
+          <span class="student-avatar" id="applicantInitials" aria-hidden="true">AP</span>
+        </div>
+      </header>
+
+      <main class="documents-main">
+        <section class="documents-hero" aria-labelledby="documentsHeading">
+          <h2 id="documentsHeading"><i class="fas fa-folder-open" aria-hidden="true"></i> My Documents</h2>
+          <p>View and manage the documents uploaded for your application.</p>
+        </section>
+
+        <section class="documents-upload-card" aria-labelledby="uploadHeading">
+          <h2 id="uploadHeading"><i class="fas fa-cloud-arrow-up" aria-hidden="true"></i> Upload New Document</h2>
+          <div id="documentsError" class="form-message form-message-error" role="alert" hidden></div>
+          <p id="documentsStatus" class="documents-status" role="status" aria-live="polite" hidden></p>
+          <input id="documentInput" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" hidden />
+          <button class="documents-dropzone" id="documentDropzone" type="button" aria-describedby="documentHelp">
+            <span class="documents-dropzone-icon"><i class="fas fa-plus" aria-hidden="true"></i></span>
+            <span>Click here to <strong>upload documents</strong> in your application</span>
+          </button>
+          <p class="documents-help" id="documentHelp">PDF, JPEG, or PNG files. Maximum size: 10 MB per document.</p>
+        </section>
+
+        <section class="documents-list-card" aria-labelledby="uploadedHeading">
+          <h2 id="uploadedHeading">Uploaded Documents</h2>
+          <div id="documentsList" aria-live="polite">
+            <div class="documents-empty-state">
+              <i class="fas fa-folder-open" aria-hidden="true"></i>
+              <h3>Loading documents...</h3>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/auth-client.js"></script>
+  <script src="/js/documents.js"></script>
+</body>
+</html>

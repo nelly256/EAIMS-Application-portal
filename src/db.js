@@ -113,9 +113,6 @@ CREATE TABLE IF NOT EXISTS application_documents (
   FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_application_documents_applicant
-  ON application_documents(applicant_id, category, created_at);
-
 CREATE TABLE IF NOT EXISTS application_program_selections (
   applicant_id INTEGER PRIMARY KEY,
   program_id TEXT NOT NULL,
@@ -147,6 +144,40 @@ async function migrate() {
   if (!programSelectionColumns.some((column) => column.name === 'intake')) {
     await exec("ALTER TABLE application_program_selections ADD COLUMN intake TEXT NOT NULL DEFAULT ''");
   }
+
+  const documentColumns = await all('PRAGMA table_info(application_documents)');
+  const documentColumnNames = new Set(documentColumns.map((column) => column.name));
+  if (documentColumnNames.has('filename') && documentColumnNames.has('data')
+    && !documentColumnNames.has('category')) {
+    await transaction(async () => {
+      await run('DROP INDEX IF EXISTS idx_application_documents_applicant');
+      await run('ALTER TABLE application_documents RENAME TO application_documents_legacy');
+      await exec(`
+        CREATE TABLE application_documents (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          applicant_id INTEGER NOT NULL,
+          category TEXT NOT NULL CHECK (category IN ('transcript', 'identity', 'additional')),
+          original_name TEXT NOT NULL,
+          mime_type TEXT NOT NULL,
+          file_size INTEGER NOT NULL,
+          file_data BLOB NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+        )
+      `);
+      await run(`
+        INSERT INTO application_documents
+          (id, applicant_id, category, original_name, mime_type, file_size, file_data, created_at)
+        SELECT id, applicant_id, 'additional', filename, mime_type, length(data), data, created_at
+        FROM application_documents_legacy
+      `);
+      await run('DROP TABLE application_documents_legacy');
+    });
+  }
+  await exec(`
+    CREATE INDEX IF NOT EXISTS idx_application_documents_applicant
+    ON application_documents(applicant_id, category, created_at)
+  `);
 }
 
 async function transaction(work) {

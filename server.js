@@ -232,7 +232,42 @@ app.post('/api/application/documents/:category', requireAuth, requireVerified, c
     }
   });
 
-app.get('/api/application/documents/:id', requireAuth, requireVerified, async (req, res, next) => {
+app.get('/api/application/documents', requireAuth, requireVerified, async (req, res, next) => {
+  try {
+    const documents = (await applicationService.listApplicationDocuments(req.applicant.id)).map((document) => ({
+      ...document,
+      filename: document.original_name,
+      size: document.file_size,
+    }));
+    return res.json({ ok: true, data: { documents } });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post('/api/application/documents', requireAuth, requireVerified, csrfProtection,
+  express.raw({ type: ['application/pdf', 'image/jpeg', 'image/png'], limit: '10mb' }), async (req, res, next) => {
+    try {
+      const originalName = typeof req.query.name === 'string' ? req.query.name : '';
+      const document = await applicationService.saveApplicationDocument(
+        req.applicant.id,
+        'additional',
+        req.body,
+        req.get('Content-Type')?.split(';')[0],
+        originalName,
+      );
+      return res.status(201).json({
+        ok: true,
+        data: {
+          document: { ...document, filename: document.original_name, size: document.file_size },
+        },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+async function sendApplicationDocument(req, res, next) {
   try {
     const documentId = Number(req.params.id);
     if (!Number.isSafeInteger(documentId) || documentId < 1) {
@@ -253,7 +288,10 @@ app.get('/api/application/documents/:id', requireAuth, requireVerified, async (r
   } catch (error) {
     return next(error);
   }
-});
+}
+
+app.get('/api/application/documents/:id', requireAuth, requireVerified, sendApplicationDocument);
+app.get('/api/application/documents/:id/file', requireAuth, requireVerified, sendApplicationDocument);
 
 app.delete('/api/application/documents/:id', requireAuth, requireVerified, csrfProtection, async (req, res, next) => {
   try {
@@ -285,6 +323,8 @@ app.get('/my-application.html', requireAuth, requireVerified, (req, res) => send
 app.get('/my-application', requireAuth, requireVerified, (req, res) => sendFile(res, 'my-application.html'));
 app.get('/track-application.html', requireAuth, requireVerified, (req, res) => sendFile(res, 'track-application.html'));
 app.get('/track-application', requireAuth, requireVerified, (req, res) => sendFile(res, 'track-application.html'));
+app.get('/documents.html', requireAuth, requireVerified, (req, res) => sendFile(res, 'documents.html'));
+app.get('/documents', requireAuth, requireVerified, (req, res) => sendFile(res, 'documents.html'));
 
 app.get('/style.css', (req, res) => sendFile(res, 'style.css'));
 app.get('/favicon.svg', (req, res) => sendFile(res, 'favicon.svg'));

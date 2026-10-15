@@ -75,6 +75,7 @@ describe('application profile service', () => {
   beforeEach(async () => {
     await db.run('DELETE FROM application_profiles');
     await db.run('DELETE FROM application_program_selections');
+    await db.run('DELETE FROM application_documents');
     await db.run('DELETE FROM applicants');
     const result = await db.run(
       `INSERT INTO applicants (surname, other_names, email, phone, password_hash)
@@ -151,6 +152,8 @@ describe('application profile service', () => {
     assert.equal(documents.filter((document) => document.category === 'identity').length, 1);
     assert.equal(documents.filter((document) => document.category === 'additional').length, 1);
     assert.equal(first.original_name, 'transcript-one.pdf');
+    assert.equal(await getApplicationDocument(applicantId + 1, first.id), undefined);
+    assert.equal(await deleteApplicationDocument(applicantId + 1, first.id), false);
 
     const stored = await getApplicationDocument(applicantId, documents.find((document) => document.category === 'identity').id);
     assert.equal(stored.original_name, 'passport.pdf');
@@ -190,6 +193,35 @@ describe('application profile service', () => {
       savePassportPhoto(applicantId, Buffer.alloc(MAX_PHOTO_BYTES + 1), 'image/png'),
       (error) => error instanceof ApplicationError && error.code === 'INVALID_PHOTO',
     );
+  });
+
+  test('migrates documents from the legacy generic document schema', async () => {
+    const pdf = Buffer.from('%PDF-1.7 legacy document');
+    await db.run('DROP TABLE application_documents');
+    await db.exec(`
+      CREATE TABLE application_documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        applicant_id INTEGER NOT NULL,
+        filename TEXT NOT NULL,
+        mime_type TEXT NOT NULL,
+        data BLOB NOT NULL,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+      )
+    `);
+    const inserted = await db.run(
+      `INSERT INTO application_documents (applicant_id, filename, mime_type, data)
+       VALUES (?, ?, ?, ?)`,
+      [applicantId, 'legacy-transcript.pdf', 'application/pdf', pdf],
+    );
+
+    await db.migrate();
+
+    const migrated = await getApplicationDocument(applicantId, inserted.id);
+    assert.equal(migrated.category, 'additional');
+    assert.equal(migrated.original_name, 'legacy-transcript.pdf');
+    assert.equal(migrated.file_size, pdf.length);
+    assert.deepEqual(migrated.file_data, pdf);
   });
 
   test('provides the listed programs and saves one selection per applicant', async () => {
