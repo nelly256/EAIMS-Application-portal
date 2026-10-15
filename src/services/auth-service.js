@@ -57,6 +57,7 @@ async function registerApplicant(input) {
   return {
     applicantId: result.id,
     delivery,
+    developmentCode: config.devOtpDelivery ? code : undefined,
     deliveryAvailable: Boolean(delivery.email.sent || delivery.sms.sent),
   };
 }

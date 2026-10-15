@@ -1768,7 +1768,7 @@ ul {
 .tracking-hero {
   padding: 2.2rem clamp(1.35rem, 3vw, 2.4rem);
   color: #ffffff;
-  background: var(--brand-dark);
+  background: var(--portal-green);
   border-radius: 8px;
 }
 
@@ -2059,7 +2059,7 @@ ul {
   --portal-wine: var(--brand);
   --portal-wine-dark: var(--brand-dark);
   --portal-wine-tint: var(--brand-soft);
-  --portal-green: #19c781;
+  --portal-green: #009344;
   --portal-border: #e5e7eb;
   --portal-muted: #7b808a;
   display: grid;
@@ -2136,8 +2136,44 @@ ul {
   font-weight: 700;
 }
 
-.sidebar-bottom {
+.sidebar-help {
   margin-top: auto;
+  padding: 1.5rem 1.4rem 1rem;
+  border-top: 1px solid var(--portal-border);
+}
+
+.sidebar-help h2 {
+  margin: 0 0 0.75rem;
+  color: #9297a1;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.sidebar-help a {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 2.5rem;
+  color: #626976;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.sidebar-help a:hover {
+  color: var(--portal-green);
+}
+
+.sidebar-help i {
+  width: 1.1rem;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.sidebar-help .fa-whatsapp {
+  color: var(--portal-green);
+}
+
+.sidebar-bottom {
   padding: 1.2rem;
   border-top: 1px solid var(--portal-border);
 }
@@ -2749,6 +2785,20 @@ ul {
     display: none;
   }
 
+  .sidebar-help {
+    margin-top: 0;
+    padding: 0.85rem 1rem 0.5rem;
+    border-top: 1px solid var(--portal-border);
+  }
+
+  .sidebar-help h2 {
+    margin-bottom: 0.35rem;
+  }
+
+  .sidebar-help a {
+    min-height: 2rem;
+  }
+
   .sidebar-bottom {
     display: block;
     padding: 0.5rem 1rem 0.75rem;
@@ -2908,7 +2958,7 @@ ul {
   position: relative;
   overflow: hidden;
   color: #ffffff;
-  background: var(--brand-dark);
+  background: var(--portal-green);
 }
 
 .application-masthead::before,
@@ -2991,45 +3041,55 @@ ul {
   align-items: center;
   gap: 0.4rem;
   margin: 0 0 0.45rem;
-  padding: 0.3rem 0.6rem;
+  padding: 0.3rem 0.65rem;
   color: #ffffff;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 650;
 }
 
 .application-hero-copy h1 {
   margin: 0;
   color: #ffffff;
-  font-size: 1.55rem;
+  font-size: 1.85rem;
   font-weight: 750;
-  line-height: 1.25;
+  line-height: 1.22;
 }
 
 .application-hero-copy > p:not(.application-number) {
   margin: 0.35rem 0 0;
-  color: #dbeafe;
+  color: rgba(255, 255, 255, 0.88);
   font-size: 0.8rem;
 }
 
 .application-stepper {
   display: grid;
-  grid-template-columns: repeat(3, minmax(7.5rem, 10rem));
+  grid-template-columns: repeat(3, minmax(12.5rem, 1fr));
   position: relative;
-  width: fit-content;
-  margin: 1.15rem 0 0;
+  width: min(100%, 52rem);
+  margin: 1.5rem 0 0;
   padding: 0;
   list-style: none;
 }
 
 .application-stepper::before {
   position: absolute;
-  top: 0.95rem;
-  left: 1rem;
-  right: 1rem;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.25);
+  top: 2rem;
+  left: 3rem;
+  right: 3rem;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.22);
+  content: '';
+}
+
+.application-stepper::after {
+  position: absolute;
+  top: 2rem;
+  left: 3rem;
+  width: calc(50% - 3rem);
+  height: 3px;
+  background: rgba(133, 255, 204, 0.88);
   content: '';
 }
 
@@ -3037,41 +3097,59 @@ ul {
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 0.15rem;
+  gap: 0.3rem;
   color: #f3dce4;
   text-align: center;
+  z-index: 1;
 }
 
 .step-marker {
   display: grid;
   place-items: center;
-  width: 1.9rem;
-  height: 1.9rem;
-  margin-bottom: 0.25rem;
+  width: 3.85rem;
+  height: 3.85rem;
+  margin-bottom: 0.38rem;
   color: #ffffff;
-  background: #517fce;
-  border: 1px dashed rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px dashed rgba(255, 255, 255, 0.42);
   border-radius: 50%;
-  font-size: 0.78rem;
+  box-shadow: none;
+  font-size: 1.35rem;
+  font-weight: 700;
 }
 
 .application-stepper .step-current .step-marker {
-  color: var(--brand-dark);
+  color: var(--portal-green);
   background: #ffffff;
   border: 2px solid #ffffff;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.14);
+  box-shadow: 0 8px 22px rgba(255, 255, 255, 0.22);
   font-weight: 750;
 }
 
 .application-stepper strong {
   color: #ffffff;
-  font-size: 0.69rem;
+  font-size: 0.92rem;
   font-weight: 700;
 }
 
 .application-stepper small {
-  color: #edcad6;
-  font-size: 0.63rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.76rem;
+}
+
+.application-stepper .step-complete .step-marker {
+  position: relative;
+  color: transparent;
+  background: var(--portal-green);
+  border-color: var(--portal-green);
+}
+
+.application-stepper .step-complete .step-marker::before {
+  content: '\f00c';
+  font-family: 'Font Awesome 6 Free';
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #ffffff;
 }
 
 .application-main {
@@ -3494,31 +3572,41 @@ ul {
   }
 
   .application-hero-copy {
-    padding-top: 1rem;
+    padding: 1.2rem 0 1.1rem;
   }
 
   .application-hero-copy h1 {
-    font-size: 1.25rem;
+    font-size: 1.85rem;
   }
 
   .application-hero-copy > p:not(.application-number) {
     max-width: 38rem;
-    font-size: 0.73rem;
+    font-size: 0.92rem;
   }
 
   .application-stepper {
-    grid-template-columns: repeat(3, minmax(5.6rem, 1fr));
+    grid-template-columns: repeat(3, minmax(6.9rem, 1fr));
     width: 100%;
-    max-width: 27rem;
+    max-width: 30rem;
     margin-top: 1rem;
   }
 
+  .application-number {
+    font-size: 0.82rem;
+  }
+
+  .step-marker {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.1rem;
+  }
+
   .application-stepper strong {
-    font-size: 0.62rem;
+    font-size: 0.8rem;
   }
 
   .application-stepper small {
-    font-size: 0.58rem;
+    font-size: 0.72rem;
   }
 
   .application-main {

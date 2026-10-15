@@ -47,7 +47,7 @@ function validationError(res, result) {
   });
 }
 
-function publicDelivery(delivery) {
+function publicDelivery(delivery, developmentCode) {
   const result = {};
   for (const channel of ['email', 'sms']) {
     const channelResult = delivery && delivery[channel];
@@ -55,6 +55,7 @@ function publicDelivery(delivery) {
     if (channelResult && channelResult.reason) result[channel].reason = channelResult.reason;
     else if (!result[channel].sent) result[channel].reason = 'DELIVERY_FAILED';
   }
+  if (developmentCode) result.developmentCode = developmentCode;
   return result;
 }
 
@@ -74,7 +75,7 @@ router.post('/register', csrfProtection, asyncRoute(async (req, res) => {
       message: 'Account created. Verify your account to continue.',
       redirect: '/verify.html',
       deliveryAvailable: registration.deliveryAvailable,
-      delivery: publicDelivery(registration.delivery),
+      delivery: publicDelivery(registration.delivery, registration.developmentCode),
     },
   };
   return res.status(201).json(response);
@@ -110,7 +111,7 @@ router.post('/resend-verification', csrfProtection, asyncRoute(async (req, res) 
     data: {
       message: 'A new verification code has been sent.',
       deliveryAvailable: Boolean(delivery.email.sent || delivery.sms.sent),
-      delivery: publicDelivery(delivery),
+      delivery: publicDelivery(delivery, config.devOtpDelivery ? code : undefined),
     },
   });
 }));

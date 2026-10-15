@@ -53,6 +53,9 @@
     if (failures.length > 0) {
       summary += ` ${failures.length > 0 ? 'Note: ' : ''}${failures.join(', ')} could not be delivered.`;
     }
+    if (delivery.developmentCode) {
+      summary += ` Development code: ${delivery.developmentCode}.`;
+    }
     return summary;
   }
 
@@ -62,6 +65,7 @@
     if (summary) {
       deliveryInfo.textContent = summary;
       deliveryInfo.hidden = false;
+      if (delivery && delivery.developmentCode && !codeInput.value) codeInput.value = delivery.developmentCode;
     } else {
       deliveryInfo.hidden = true;
     }
