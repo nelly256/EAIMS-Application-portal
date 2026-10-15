@@ -180,6 +180,57 @@ app.get('/api/application/profile/photo', requireAuth, requireVerified, async (r
   }
 });
 
+app.get('/api/application/documents', requireAuth, requireVerified, async (req, res, next) => {
+  try {
+    const documents = await applicationService.listApplicationDocuments(req.applicant.id);
+    return res.json({ ok: true, data: { documents } });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post('/api/application/documents', requireAuth, requireVerified, csrfProtection,
+  express.raw({ type: ['application/pdf', 'image/jpeg', 'image/png'], limit: '10mb' }), async (req, res, next) => {
+    try {
+      const document = await applicationService.saveApplicationDocument(
+        req.applicant.id,
+        req.query.name,
+        req.body,
+        req.get('Content-Type')?.split(';')[0],
+      );
+      return res.status(201).json({ ok: true, data: { document } });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+app.get('/api/application/documents/:documentId/file', requireAuth, requireVerified, async (req, res, next) => {
+  try {
+    const document = await applicationService.getApplicationDocument(req.applicant.id, req.params.documentId);
+    if (!document) {
+      return res.status(404).json({ ok: false, error: { code: 'DOCUMENT_NOT_FOUND', message: 'The document was not found.' } });
+    }
+    res.set('Cache-Control', 'private, no-store');
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('Content-Disposition', `attachment; filename="${document.filename.replace(/["\\]/g, '_')}"`);
+    return res.type(document.mime_type).send(document.data);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.delete('/api/application/documents/:documentId', requireAuth, requireVerified, csrfProtection, async (req, res, next) => {
+  try {
+    const deleted = await applicationService.deleteApplicationDocument(req.applicant.id, req.params.documentId);
+    if (!deleted) {
+      return res.status(404).json({ ok: false, error: { code: 'DOCUMENT_NOT_FOUND', message: 'The document was not found.' } });
+    }
+    return res.json({ ok: true, data: { deleted: true } });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 function sendFile(res, file) {
   res.sendFile(path.join(__dirname, file));
 }
@@ -197,6 +248,8 @@ app.get('/my-application.html', requireAuth, requireVerified, (req, res) => send
 app.get('/my-application', requireAuth, requireVerified, (req, res) => sendFile(res, 'my-application.html'));
 app.get('/track-application.html', requireAuth, requireVerified, (req, res) => sendFile(res, 'track-application.html'));
 app.get('/track-application', requireAuth, requireVerified, (req, res) => sendFile(res, 'track-application.html'));
+app.get('/documents.html', requireAuth, requireVerified, (req, res) => sendFile(res, 'documents.html'));
+app.get('/documents', requireAuth, requireVerified, (req, res) => sendFile(res, 'documents.html'));
 
 app.get('/style.css', (req, res) => sendFile(res, 'style.css'));
 app.get('/favicon.svg', (req, res) => sendFile(res, 'favicon.svg'));

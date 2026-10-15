@@ -99,6 +99,19 @@ CREATE TABLE IF NOT EXISTS application_profiles (
   FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS application_documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  applicant_id INTEGER NOT NULL,
+  filename TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  data BLOB NOT NULL,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_application_documents_applicant
+  ON application_documents(applicant_id, created_at);
+
 CREATE TABLE IF NOT EXISTS sessions (
   sid TEXT PRIMARY KEY,
   data TEXT NOT NULL,

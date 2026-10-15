@@ -14,10 +14,15 @@ const db = require('../src/db');
 const {
   ApplicationError,
   MAX_PHOTO_BYTES,
+  MAX_DOCUMENT_BYTES,
   getApplicationProfile,
   saveApplicationProfile,
   savePassportPhoto,
   getPassportPhoto,
+  listApplicationDocuments,
+  saveApplicationDocument,
+  getApplicationDocument,
+  deleteApplicationDocument,
 } = require('../src/services/application-service');
 
 let applicantId;
@@ -81,6 +86,32 @@ describe('application profile service', () => {
     await assert.rejects(
       savePassportPhoto(applicantId, Buffer.alloc(MAX_PHOTO_BYTES + 1), 'image/png'),
       (error) => error instanceof ApplicationError && error.code === 'INVALID_PHOTO',
+    );
+  });
+
+  test('stores, lists, retrieves, and deletes an applicant document', async () => {
+    const pdf = Buffer.from('%PDF-1.7 test document');
+    const saved = await saveApplicationDocument(applicantId, 'C:\\fakepath\\transcript.pdf', pdf, 'application/pdf');
+
+    assert.equal(saved.filename, 'transcript.pdf');
+    assert.equal(saved.mime_type, 'application/pdf');
+    assert.equal(saved.size, pdf.length);
+    assert.deepEqual(await listApplicationDocuments(applicantId), [saved]);
+    assert.deepEqual((await getApplicationDocument(applicantId, saved.id)).data, pdf);
+    assert.equal(await getApplicationDocument(applicantId + 1, saved.id), undefined);
+    assert.equal(await deleteApplicationDocument(applicantId + 1, saved.id), false);
+    assert.equal(await deleteApplicationDocument(applicantId, saved.id), true);
+    assert.deepEqual(await listApplicationDocuments(applicantId), []);
+  });
+
+  test('rejects invalid documents and files over 10 MB', async () => {
+    await assert.rejects(
+      saveApplicationDocument(applicantId, 'fake.pdf', Buffer.from('not a PDF'), 'application/pdf'),
+      (error) => error instanceof ApplicationError && error.code === 'INVALID_DOCUMENT',
+    );
+    await assert.rejects(
+      saveApplicationDocument(applicantId, 'large.pdf', Buffer.alloc(MAX_DOCUMENT_BYTES + 1), 'application/pdf'),
+      (error) => error instanceof ApplicationError && error.code === 'INVALID_DOCUMENT',
     );
   });
 });

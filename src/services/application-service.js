@@ -4,6 +4,8 @@ const db = require('../db');
 const { COUNTRY_CODES, validDate, validName } = require('../validation');
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+const DOCUMENT_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const FIELD_COLUMNS = {
   firstName: 'first_name',
   lastName: 'last_name',
@@ -123,11 +125,81 @@ async function getPassportPhoto(applicantId) {
   );
 }
 
+function documentFormatError(message) {
+  return new ApplicationError(400, 'INVALID_DOCUMENT', message, { document: message });
+}
+
+function cleanDocumentFilename(filename) {
+  return String(filename || '')
+    .split(/[\\/]/)
+    .pop()
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .trim()
+    .slice(0, 180);
+}
+
+async function listApplicationDocuments(applicantId) {
+  return db.all(
+    `SELECT id, filename, mime_type, length(data) AS size, created_at
+     FROM application_documents WHERE applicant_id = ? ORDER BY created_at DESC, id DESC`,
+    [applicantId],
+  );
+}
+
+async function saveApplicationDocument(applicantId, filename, buffer, mimeType) {
+  const safeFilename = cleanDocumentFilename(filename);
+  if (!safeFilename) throw documentFormatError('Choose a document with a valid filename.');
+  if (!Buffer.isBuffer(buffer) || buffer.length === 0) throw documentFormatError('Choose a document to upload.');
+  if (buffer.length > MAX_DOCUMENT_BYTES) throw documentFormatError('Choose a document smaller than 10 MB.');
+  if (!DOCUMENT_MIME_TYPES.includes(mimeType)) {
+    throw documentFormatError('Upload a PDF, JPEG, or PNG document.');
+  }
+
+  const validSignature = mimeType === 'application/pdf'
+    ? buffer.subarray(0, 5).toString('ascii') === '%PDF-'
+    : mimeType === 'image/jpeg'
+      ? buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
+      : buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (!validSignature) throw documentFormatError('The document content does not match its file type.');
+
+  const result = await db.run(
+    `INSERT INTO application_documents (applicant_id, filename, mime_type, data)
+     VALUES (?, ?, ?, ?)`,
+    [applicantId, safeFilename, mimeType, buffer],
+  );
+  return db.get(
+    `SELECT id, filename, mime_type, length(data) AS size, created_at
+     FROM application_documents WHERE id = ? AND applicant_id = ?`,
+    [result.id, applicantId],
+  );
+}
+
+async function getApplicationDocument(applicantId, documentId) {
+  return db.get(
+    `SELECT id, filename, mime_type, data, created_at
+     FROM application_documents WHERE id = ? AND applicant_id = ?`,
+    [documentId, applicantId],
+  );
+}
+
+async function deleteApplicationDocument(applicantId, documentId) {
+  const result = await db.run(
+    'DELETE FROM application_documents WHERE id = ? AND applicant_id = ?',
+    [documentId, applicantId],
+  );
+  return result.changes > 0;
+}
+
 module.exports = {
   ApplicationError,
   MAX_PHOTO_BYTES,
+  MAX_DOCUMENT_BYTES,
   getApplicationProfile,
   saveApplicationProfile,
   savePassportPhoto,
   getPassportPhoto,
+  listApplicationDocuments,
+  saveApplicationDocument,
+  getApplicationDocument,
+  deleteApplicationDocument,
 };
