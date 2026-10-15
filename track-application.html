@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -21,6 +21,7 @@
         <a class="sidebar-link" href="/my-application"><i class="fas fa-file-lines" aria-hidden="true"></i><span>My Application</span></a>
         <a class="sidebar-link is-active" href="/track-application" aria-current="page"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>Track My Application</span></a>
         <a class="sidebar-link" href="/my-application#documents"><i class="fas fa-folder" aria-hidden="true"></i><span>Documents</span></a>
+        <a class="sidebar-link" href="/dashboard#profile"><i class="fas fa-user" aria-hidden="true"></i><span>Profile</span></a>
       </nav>
       <section class="sidebar-help" aria-labelledby="sidebarHelpTitle">
         <h2 id="sidebarHelpTitle">NEED HELP?</h2>
@@ -90,13 +91,13 @@
               </li>
               <li class="timeline-item" id="timelineProgram">
                 <span class="timeline-marker"><i class="fas fa-paper-plane" aria-hidden="true"></i></span>
-                <div><h3>Program Selection</h3><p>Select your program after completing personal information.</p></div>
-                <span class="timeline-status">Not started</span>
+                <div><h3>Program Selection</h3><p id="timelineProgramText">Choose one program after completing personal information.</p></div>
+                <span class="timeline-status" id="timelineProgramStatus">Not started</span>
               </li>
               <li class="timeline-item" id="timelineDocuments">
                 <span class="timeline-marker"><i class="fas fa-folder-open" aria-hidden="true"></i></span>
-                <div><h3>Document Verification</h3><p>Required documents will be checked after submission.</p></div>
-                <span class="timeline-status">Upcoming</span>
+                <div><h3>Document Upload</h3><p id="timelineDocumentsText">Upload a passport photo, transcripts, and your National ID or passport.</p></div>
+                <span class="timeline-status" id="timelineDocumentsStatus">Required</span>
               </li>
               <li class="timeline-item" id="timelineReview">
                 <span class="timeline-marker"><i class="fas fa-user-check" aria-hidden="true"></i></span>

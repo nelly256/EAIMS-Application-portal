@@ -93,8 +93,34 @@ CREATE TABLE IF NOT EXISTS application_profiles (
   date_of_birth TEXT NOT NULL DEFAULT '',
   gender TEXT NOT NULL DEFAULT '',
   physical_address TEXT NOT NULL DEFAULT '',
+  next_of_kin_name TEXT NOT NULL DEFAULT '',
+  next_of_kin_contact TEXT NOT NULL DEFAULT '',
   passport_photo BLOB,
   passport_photo_mime TEXT,
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS application_documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  applicant_id INTEGER NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('transcript', 'identity', 'additional')),
+  original_name TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  file_data BLOB NOT NULL,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_application_documents_applicant
+  ON application_documents(applicant_id, category, created_at);
+
+CREATE TABLE IF NOT EXISTS application_program_selections (
+  applicant_id INTEGER PRIMARY KEY,
+  program_id TEXT NOT NULL,
+  intake TEXT NOT NULL DEFAULT '',
+  created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
 );
@@ -110,6 +136,17 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 
 async function migrate() {
   await exec(SCHEMA);
+  const profileColumns = await all('PRAGMA table_info(application_profiles)');
+  if (!profileColumns.some((column) => column.name === 'next_of_kin_name')) {
+    await exec("ALTER TABLE application_profiles ADD COLUMN next_of_kin_name TEXT NOT NULL DEFAULT ''");
+  }
+  if (!profileColumns.some((column) => column.name === 'next_of_kin_contact')) {
+    await exec("ALTER TABLE application_profiles ADD COLUMN next_of_kin_contact TEXT NOT NULL DEFAULT ''");
+  }
+  const programSelectionColumns = await all('PRAGMA table_info(application_program_selections)');
+  if (!programSelectionColumns.some((column) => column.name === 'intake')) {
+    await exec("ALTER TABLE application_program_selections ADD COLUMN intake TEXT NOT NULL DEFAULT ''");
+  }
 }
 
 async function transaction(work) {
