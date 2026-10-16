@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/style.css" />
   <link rel="icon" href="/favicon.png" type="image/png" />
 </head>
-<body class="auth-page-body">
+<body class="auth-page-body auth-page-transparent">
   <main class="auth-page">
     <div class="auth-page-inner">
       <section class="auth-brand" aria-label="EAIMS Online Application Portal">
@@ -47,7 +47,7 @@
 
           <div class="auth-links">
             <a class="auth-link" href="/register.html">Create an account</a>
-            <a class="auth-link" href="/forgot-password.html">Forgot your password?</a>
+            <a class="auth-link" href="/forgot-password.html" data-auth-flip>Forgot your password?</a>
           </div>
 
           <div id="formError" class="form-message form-message-error" role="alert" hidden></div>
@@ -63,6 +63,7 @@
   </footer>
 
   <script src="/js/auth-client.js?v=2"></script>
+  <script src="/js/auth-transition.js"></script>
   <script src="/js/login.js"></script>
 </body>
 </html>

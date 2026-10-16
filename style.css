@@ -660,19 +660,81 @@ ul {
   background: #f8fafc;
 }
 
+.auth-page-body.auth-page-transparent {
+  background: transparent;
+}
+
 .auth-page {
   display: flex;
   align-items: center;
   min-height: calc(100vh - 76px);
   padding: 3.5rem 0 4.5rem;
+  perspective: 1200px;
   background:
     radial-gradient(circle at 15% 10%, rgba(37, 99, 235, 0.08), transparent 28rem),
     linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
 }
 
+.auth-page-transparent .auth-page {
+  background:
+    radial-gradient(circle at 16% 24%, rgba(37, 99, 235, 0.2), transparent 25rem),
+    radial-gradient(circle at 86% 78%, rgba(139, 21, 56, 0.16), transparent 26rem),
+    linear-gradient(135deg, #edf3ff 0%, #f8fafc 48%, #f8edf2 100%);
+}
+
 .auth-page-inner {
   width: min(46rem, 92%);
   margin-inline: auto;
+  transform-style: preserve-3d;
+}
+
+.auth-page-transparent .auth-card {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 20px 55px rgba(15, 23, 42, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .auth-page-transparent .auth-card {
+    background: rgba(255, 255, 255, 0.48);
+    backdrop-filter: blur(18px) saturate(155%);
+    -webkit-backdrop-filter: blur(18px) saturate(155%);
+  }
+}
+
+.auth-flip-out .auth-page-inner {
+  animation: auth-page-flip-out 600ms ease-in forwards;
+}
+
+.auth-flip-in .auth-page-inner {
+  animation: auth-page-flip-in 600ms ease-out both;
+}
+
+@keyframes auth-page-flip-out {
+  to {
+    opacity: 0;
+    transform: rotateY(-180deg);
+  }
+}
+
+@keyframes auth-page-flip-in {
+  from {
+    opacity: 0;
+    transform: rotateY(180deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-flip-out .auth-page-inner,
+  .auth-flip-in .auth-page-inner {
+    animation: none;
+  }
 }
 
 .auth-brand {
@@ -3385,7 +3447,7 @@ ul {
   left: 3rem;
   width: 0;
   height: 3px;
-  background: rgba(133, 255, 204, 0.88);
+  background: #10b981;
   content: '';
   transition: width 0.2s ease;
 }
@@ -3449,7 +3511,7 @@ ul {
 }
 
 .application-stepper .step-current .step-marker {
-  color: var(--portal-green);
+  color: #8b1538;
   background: #ffffff;
   border: 2px solid #ffffff;
   box-shadow: 0 8px 22px rgba(255, 255, 255, 0.22);
@@ -3470,8 +3532,8 @@ ul {
 .application-stepper .step-complete .step-marker {
   position: relative;
   color: transparent;
-  background: var(--portal-green);
-  border-color: var(--portal-green);
+  background: #10b981;
+  border-color: #10b981;
 }
 
 .application-stepper .step-complete .step-marker::before {

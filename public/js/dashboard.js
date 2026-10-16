@@ -5,35 +5,19 @@
   const dashboardContent = document.getElementById('dashboardContent');
   const dashboardError = document.getElementById('dashboardError');
 
-  function showView(name) {
-    const showProfile = name === 'profile';
-    dashboardContent.querySelectorAll(':scope > section').forEach((section) => {
-      section.hidden = showProfile ? section.id !== 'profile' : section.id === 'profile';
-    });
-    document.querySelectorAll('.sidebar-link[data-view]').forEach((link) => {
-      const active = link.dataset.view === name;
-      link.classList.toggle('is-active', active);
-      if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
-    });
-    const title = document.getElementById('viewTitle');
-    if (title) title.textContent = showProfile ? 'Profile' : 'Dashboard';
+  function displayValue(value) {
+    const text = String(value || '').trim();
+    return text || 'Not provided';
   }
-
-  document.querySelectorAll('[data-view]').forEach((link) => {
-    link.addEventListener('click', (event) => {
-      event.preventDefault();
-      history.replaceState(null, '', `#${link.dataset.view}`);
-      showView(link.dataset.view);
-    });
-  });
 
   async function loadDashboard() {
     try {
       const payload = await window.EaimsAuth.request('/api/dashboard');
       const applicant = payload.data.applicant;
-      const fullName = [applicant.otherNames, applicant.surname].filter(Boolean).join(' ') || 'Applicant';
-      const firstName = applicant.otherNames || applicant.surname || 'Applicant';
       const applicationProfile = payload.data.applicationProfile || {};
+      const profileFullName = [applicationProfile.firstName, applicationProfile.lastName].filter(Boolean).join(' ');
+      const fullName = profileFullName || [applicant.otherNames, applicant.surname].filter(Boolean).join(' ') || 'Applicant';
+      const firstName = applicationProfile.firstName || applicant.otherNames || applicant.surname || 'Applicant';
       const programSelection = payload.data.programSelection;
       const documents = Array.isArray(payload.data.documents) ? payload.data.documents : [];
       const hasCompleteProgramChoice = Boolean(programSelection && programSelection.intake);
@@ -42,9 +26,10 @@
         && documents.some((document) => document.category === 'transcript')
         && documents.some((document) => document.category === 'identity'),
       );
-      const initials = [applicant.otherNames, applicant.surname]
+      const initials = fullName
+        .split(/\s+/)
         .filter(Boolean)
-        .map((name) => name.trim()[0])
+        .map((name) => name[0])
         .join('')
         .slice(0, 2)
         .toUpperCase() || 'AP';
@@ -70,10 +55,13 @@
       document.getElementById('applicantInitials').textContent = initials;
       document.getElementById('applicantFirstName').textContent = firstName;
       document.getElementById('applicantNameDetail').textContent = fullName;
-      document.getElementById('applicantEmail').textContent = applicant.email || 'Not provided';
-      document.getElementById('applicantPhone').textContent = applicant.phone || 'Not provided';
-      document.getElementById('applicantNationality').textContent = applicant.nationality || 'Not provided';
-      document.getElementById('applicantDob').textContent = applicant.dateOfBirth ? new Date(`${applicant.dateOfBirth}T00:00:00`).toLocaleDateString() : 'Not provided';
+      document.getElementById('applicantEmail').textContent = displayValue(applicant.email);
+      document.getElementById('applicantPhone').textContent = displayValue(applicant.phone);
+      document.getElementById('applicantNationality').textContent = displayValue(applicant.nationality);
+      const dateOfBirth = applicationProfile.dateOfBirth || applicant.dateOfBirth;
+      document.getElementById('applicantDob').textContent = dateOfBirth
+        ? new Date(`${dateOfBirth}T00:00:00`).toLocaleDateString()
+        : 'Not provided';
       document.getElementById('applicationStatusText').textContent = programSelection
         ? hasCompleteProgramChoice ? 'Program and intake selected' : 'Choose an intake to finish program selection'
         : profileStatus;
@@ -138,7 +126,6 @@
         ? 'Selected'
         : programSelection ? 'Intake needed' : 'Upcoming';
       dashboardContent.hidden = false;
-      showView(window.location.hash === '#profile' ? 'profile' : 'overview');
     } catch (error) {
       dashboardContent.hidden = true;
       window.EaimsAuth.showFormMessage(dashboardError, error.message);
@@ -148,13 +135,19 @@
 
   logoutButton?.addEventListener('click', async () => {
     logoutButton.disabled = true;
+    logoutButton.setAttribute('aria-busy', 'true');
     try {
       const payload = await window.EaimsAuth.request('/api/auth/logout', { method: 'POST' });
+      const redirect = payload.data?.redirect;
+      if (typeof redirect !== 'string' || !redirect.startsWith('/') || redirect.startsWith('//')) {
+        throw new Error('Logout could not be completed. Please try again.');
+      }
       window.EaimsAuth.clearCsrfToken();
-      window.location.assign(payload.data.redirect);
+      window.location.replace(redirect);
     } catch (error) {
       window.EaimsAuth.showFormMessage(dashboardError, error.message);
       logoutButton.disabled = false;
+      logoutButton.removeAttribute('aria-busy');
     }
   });
 

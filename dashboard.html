@@ -17,11 +17,10 @@
       </a>
       <p class="sidebar-section-label">STUDENT PORTAL NAVIGATION</p>
       <nav class="student-navigation" aria-label="Student portal navigation">
-        <a class="sidebar-link is-active" href="#overview" data-view="overview" aria-current="page"><i class="fas fa-house" aria-hidden="true"></i><span>Dashboard</span></a>
+        <a class="sidebar-link is-active" href="/dashboard" aria-current="page"><i class="fas fa-house" aria-hidden="true"></i><span>Dashboard</span></a>
         <a class="sidebar-link" href="/my-application"><i class="fas fa-file-lines" aria-hidden="true"></i><span>My Application</span></a>
         <a class="sidebar-link" href="/track-application"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>Track My Application</span></a>
         <a class="sidebar-link" href="/documents"><i class="fas fa-folder" aria-hidden="true"></i><span>Documents</span></a>
-        <a class="sidebar-link" href="#profile" data-view="profile"><i class="fas fa-user" aria-hidden="true"></i><span>Profile</span></a>
       </nav>
       <section class="sidebar-help" aria-labelledby="sidebarHelpTitle">
         <h2 id="sidebarHelpTitle">NEED HELP?</h2>
@@ -109,7 +108,7 @@
               <span class="shortcut-icon documents-shortcut-icon"><i class="fas fa-folder-open" aria-hidden="true"></i></span>
               <span><strong>Documents</strong><small id="documentSummary">Passport photo not uploaded</small></span>
             </a>
-            <a class="shortcut-panel" href="#profile" data-view="profile">
+            <a class="shortcut-panel" href="#personalInformation">
               <span class="shortcut-icon profile-shortcut-icon"><i class="fas fa-user" aria-hidden="true"></i></span>
               <span><strong>Personal details</strong><small>Review your account information</small></span>
             </a>
@@ -157,9 +156,9 @@
             </article>
           </section>
 
-          <section class="portal-panel applicant-profile-panel dashboard-view" id="profile" hidden>
+          <section class="portal-panel applicant-profile-panel" id="personalInformation" aria-labelledby="personalInformationTitle">
             <header class="detail-panel-header">
-              <h2><i class="fas fa-user profile-title-icon" aria-hidden="true"></i>Personal information</h2>
+              <h2 id="personalInformationTitle"><i class="fas fa-user profile-title-icon" aria-hidden="true"></i>Personal information</h2>
               <span class="profile-verified"><i class="fas fa-circle-check" aria-hidden="true"></i> Verified account</span>
             </header>
             <dl class="profile-list">
