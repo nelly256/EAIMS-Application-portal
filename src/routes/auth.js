@@ -139,7 +139,7 @@ router.post('/logout', csrfProtection, asyncRoute(async (req, res) => {
     secure: config.cookieSecure,
     sameSite: 'lax',
   });
-  return res.json({ ok: true, data: { redirect: '/login.html' } });
+  return res.json({ ok: true, data: { redirect: '/' } });
 }));
 
 router.post('/forgot-password', csrfProtection, asyncRoute(async (req, res) => {
