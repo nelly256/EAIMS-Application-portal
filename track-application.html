@@ -13,7 +13,7 @@
   <div class="portal-dashboard">
     <aside class="student-sidebar" aria-label="Student portal sidebar">
       <a href="/dashboard" class="student-brand" aria-label="EAIMS student dashboard">
-        <img src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" />
+        <img src="/eaims-logo.jpeg" alt="East African Institute for Management Science logo" />
       </a>
       <p class="sidebar-section-label">STUDENT PORTAL NAVIGATION</p>
       <nav class="student-navigation" aria-label="Student portal navigation">
@@ -90,13 +90,13 @@
               </li>
               <li class="timeline-item" id="timelineProgram">
                 <span class="timeline-marker"><i class="fas fa-paper-plane" aria-hidden="true"></i></span>
-                <div><h3>Program Selection</h3><p>Select your program after completing personal information.</p></div>
-                <span class="timeline-status">Not started</span>
+                <div><h3>Program Selection</h3><p id="timelineProgramText">Choose one program after completing personal information.</p></div>
+                <span class="timeline-status" id="timelineProgramStatus">Not started</span>
               </li>
               <li class="timeline-item" id="timelineDocuments">
                 <span class="timeline-marker"><i class="fas fa-folder-open" aria-hidden="true"></i></span>
-                <div><h3>Document Verification</h3><p>Required documents will be checked after submission.</p></div>
-                <span class="timeline-status">Upcoming</span>
+                <div><h3>Document Upload</h3><p id="timelineDocumentsText">Upload a passport photo, transcripts, and your National ID or passport.</p></div>
+                <span class="timeline-status" id="timelineDocumentsStatus">Required</span>
               </li>
               <li class="timeline-item" id="timelineReview">
                 <span class="timeline-marker"><i class="fas fa-user-check" aria-hidden="true"></i></span>

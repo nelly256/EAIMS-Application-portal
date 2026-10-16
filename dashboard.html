@@ -13,7 +13,7 @@
   <div class="portal-dashboard">
     <aside class="student-sidebar" aria-label="Student portal sidebar">
       <a href="/dashboard" class="student-brand" aria-label="EAIMS student dashboard">
-        <img src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" />
+        <img src="/eaims-logo.jpeg" alt="East African Institute for Management Science logo" />
       </a>
       <p class="sidebar-section-label">STUDENT PORTAL NAVIGATION</p>
       <nav class="student-navigation" aria-label="Student portal navigation">
@@ -40,7 +40,7 @@
       <header class="student-topbar">
         <div class="topbar-title">
           <p>STUDENT PORTAL</p>
-          <h1>Dashboard</h1>
+          <h1 id="viewTitle">Dashboard</h1>
         </div>
         <div class="student-identity">
           <div class="student-identity-copy">
@@ -88,10 +88,10 @@
                 <div>
                   <p class="panel-eyebrow">NEXT STEP</p>
                   <h2>Continue your application</h2>
-                  <p>Complete your personal information and upload a passport photo to prepare for program selection.</p>
+                  <p id="nextStepDescription">Complete your personal information to choose a program, then upload your passport photo.</p>
                 </div>
               </div>
-              <a class="continue-application" href="/my-application">Continue to My Application <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+              <a class="continue-application" id="continueApplicationLink" href="/my-application">Continue to My Application <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
             </article>
           </section>
 
@@ -100,11 +100,15 @@
               <span class="shortcut-icon application-shortcut-icon"><i class="fas fa-file-lines" aria-hidden="true"></i></span>
               <span><strong>My Application</strong><small>Continue when applications open</small></span>
             </a>
+            <a class="shortcut-panel" href="/track-application">
+              <span class="shortcut-icon application-shortcut-icon"><i class="fas fa-clipboard-check" aria-hidden="true"></i></span>
+              <span><strong>Track My Application</strong><small>Follow your application progress</small></span>
+            </a>
             <a class="shortcut-panel" href="#documents">
               <span class="shortcut-icon documents-shortcut-icon"><i class="fas fa-folder-open" aria-hidden="true"></i></span>
               <span><strong>Documents</strong><small id="documentSummary">Passport photo not uploaded</small></span>
             </a>
-            <a class="shortcut-panel" href="#profile">
+            <a class="shortcut-panel" href="#personalInformation">
               <span class="shortcut-icon profile-shortcut-icon"><i class="fas fa-user" aria-hidden="true"></i></span>
               <span><strong>Personal details</strong><small>Review your account information</small></span>
             </a>
@@ -121,15 +125,15 @@
                   <span class="checklist-copy"><strong>Personal information</strong><small id="personalInfoChecklistDescription">Complete your application profile</small></span>
                   <span class="checklist-status" id="personalInfoChecklistStatus">In progress</span>
                 </li>
-                <li class="checklist-item">
+                <li class="checklist-item" id="programSelectionChecklist">
                   <span class="checklist-state" aria-hidden="true"></span>
-                  <span class="checklist-copy"><strong>Supporting documents</strong><small>Documents can be added when applications open</small></span>
-                  <span class="checklist-status">Upcoming</span>
+                  <span class="checklist-copy"><strong>Program selection</strong><small id="programSelectionChecklistDescription">Choose one program during your application</small></span>
+                  <span class="checklist-status" id="programSelectionChecklistStatus">Upcoming</span>
                 </li>
-                <li class="checklist-item">
+                <li class="checklist-item" id="documentChecklist">
                   <span class="checklist-state" aria-hidden="true"></span>
-                  <span class="checklist-copy"><strong>Program selection</strong><small>Choose a program during your application</small></span>
-                  <span class="checklist-status">Upcoming</span>
+                  <span class="checklist-copy"><strong>Supporting documents</strong><small id="documentChecklistDescription">Upload your passport photo, transcripts, and ID or passport</small></span>
+                  <span class="checklist-status" id="documentChecklistStatus">Upcoming</span>
                 </li>
                 <li class="checklist-item">
                   <span class="checklist-state" aria-hidden="true"></span>
@@ -143,17 +147,18 @@
               <header class="detail-panel-header">
                 <h2><i class="fas fa-file-lines documents-title-icon" aria-hidden="true"></i>Recent documents</h2>
               </header>
-              <div class="documents-empty-state">
+              <div class="documents-empty-state" id="recentDocumentsEmptyState">
                 <span><i class="fas fa-folder-open" aria-hidden="true"></i></span>
                 <h3>No documents yet</h3>
-                <p>Documents will appear here when uploads are available for your application.</p>
+                <p>Uploaded transcripts and supporting documents will appear here.</p>
               </div>
+              <ul class="dashboard-document-list" id="recentDocumentsList"></ul>
             </article>
           </section>
 
-          <section class="portal-panel applicant-profile-panel" id="profile">
+          <section class="portal-panel applicant-profile-panel" id="personalInformation" aria-labelledby="personalInformationTitle">
             <header class="detail-panel-header">
-              <h2><i class="fas fa-user profile-title-icon" aria-hidden="true"></i>Personal information</h2>
+              <h2 id="personalInformationTitle"><i class="fas fa-user profile-title-icon" aria-hidden="true"></i>Personal information</h2>
               <span class="profile-verified"><i class="fas fa-circle-check" aria-hidden="true"></i> Verified account</span>
             </header>
             <dl class="profile-list">
@@ -170,7 +175,7 @@
       <footer class="portal-footer">&copy; 2026 EAIMS. All Rights Reserved.</footer>
     </div>
   </div>
-  <script src="/js/auth-client.js"></script>
+  <script src="/js/auth-client.js?v=2"></script>
   <script src="/js/nav.js"></script>
   <script src="/js/dashboard.js"></script>
 </body>

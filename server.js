@@ -19,20 +19,20 @@ const app = express();
 app.disable('x-powered-by');
 if (config.nodeEnv === 'production') app.set('trust proxy', 1);
 
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'",       'https://cdnjs.cloudflare.com', 'https://fonts.googleapis.com'],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        fontSrc: ["'self'", 'https://cdnjs.cloudflare.com', 'https://fonts.gstatic.com'],
-        connectSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        baseUri: ["'self'"],
-        formAction: ["'self'"],
-      },
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
     },
+  },
     crossOriginEmbedderPolicy: false,
   }));
 morgan.token('safe-url', (req) => String(req.originalUrl || '').split('?')[0]);
@@ -92,12 +92,18 @@ if (config.nodeEnv === 'development') {
 app.get('/api/dashboard', requireAuth, requireVerified, async (req, res, next) => {
   const { publicApplicant } = require('./src/security');
   try {
-    const savedProfile = await applicationService.getApplicationProfile(req.applicant.id) || {};
+    const [profile, programSelection, documents] = await Promise.all([
+      applicationService.getApplicationProfile(req.applicant.id),
+      applicationService.getProgramSelection(req.applicant.id),
+      applicationService.listApplicationDocuments(req.applicant.id),
+    ]);
+    const savedProfile = profile || {};
     return res.json({
       ok: true,
       data: {
         applicant: publicApplicant(req.applicant),
         application: null,
+        programSelection: programSelection || null,
         applicationProfile: {
           firstName: savedProfile ? savedProfile.first_name : req.applicant.other_names || '',
           lastName: savedProfile ? savedProfile.last_name : req.applicant.surname || '',
@@ -106,8 +112,11 @@ app.get('/api/dashboard', requireAuth, requireVerified, async (req, res, next) =
           dateOfBirth: savedProfile ? savedProfile.date_of_birth : req.applicant.date_of_birth || '',
           gender: savedProfile ? savedProfile.gender : req.applicant.sex || '',
           physicalAddress: savedProfile.physical_address || '',
+          nextOfKinName: savedProfile.next_of_kin_name || '',
+          nextOfKinContact: savedProfile.next_of_kin_contact || '',
           hasPassportPhoto: Boolean(savedProfile.has_passport_photo),
         },
+        documents,
         message: 'Your verified account is ready for the application process.',
       },
     });
@@ -118,12 +127,19 @@ app.get('/api/dashboard', requireAuth, requireVerified, async (req, res, next) =
 
 app.get('/api/application/profile', requireAuth, requireVerified, async (req, res, next) => {
   try {
-    const savedProfile = await applicationService.getApplicationProfile(req.applicant.id);
+    const [savedProfile, programSelection, documents] = await Promise.all([
+      applicationService.getApplicationProfile(req.applicant.id),
+      applicationService.getProgramSelection(req.applicant.id),
+      applicationService.listApplicationDocuments(req.applicant.id),
+    ]);
     const profile = savedProfile || {};
     return res.json({
       ok: true,
       data: {
         countries: COUNTRY_CODES.map((country) => country.name),
+        programs: applicationService.getPrograms(),
+        intakes: applicationService.getIntakes(),
+        programSelection: programSelection || null,
         profile: {
           firstName: savedProfile ? profile.first_name : req.applicant.other_names || '',
           lastName: savedProfile ? profile.last_name : req.applicant.surname || '',
@@ -134,12 +150,27 @@ app.get('/api/application/profile', requireAuth, requireVerified, async (req, re
           dateOfBirth: savedProfile ? profile.date_of_birth : req.applicant.date_of_birth || '',
           gender: savedProfile ? profile.gender : req.applicant.sex || '',
           physicalAddress: profile.physical_address || '',
+          nextOfKinName: profile.next_of_kin_name || '',
+          nextOfKinContact: profile.next_of_kin_contact || '',
+          trainingArrangements: JSON.parse(profile.training_arrangements || '[]'),
+          employmentHistory: JSON.parse(profile.employment_history || '[]'),
+          courseReason: profile.course_reason || '',
           hasPassportPhoto: Boolean(profile.has_passport_photo),
           passportPhotoMime: profile.passport_photo_mime || '',
           updatedAt: profile.updated_at || '',
+          documents,
         },
       },
     });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.put('/api/application/program-selection', requireAuth, requireVerified, csrfProtection, async (req, res, next) => {
+  try {
+    const selection = await applicationService.saveProgramSelection(req.applicant.id, req.body || {});
+    return res.json({ ok: true, data: { programSelection: selection } });
   } catch (error) {
     return next(error);
   }
@@ -180,9 +211,37 @@ app.get('/api/application/profile/photo', requireAuth, requireVerified, async (r
   }
 });
 
+app.post('/api/application/documents/:category', requireAuth, requireVerified, csrfProtection,
+  express.raw({ type: '*/*', limit: '10mb' }), async (req, res, next) => {
+    try {
+      let originalName;
+      try {
+        originalName = decodeURIComponent(req.get('X-File-Name') || '');
+      } catch {
+        throw new applicationService.ApplicationError(400, 'INVALID_DOCUMENT', 'Choose a file with a valid name.', {
+          file: 'Choose a file with a valid name.',
+        });
+      }
+      const document = await applicationService.saveApplicationDocument(
+        req.applicant.id,
+        req.params.category,
+        req.body,
+        req.get('Content-Type')?.split(';')[0],
+        originalName,
+      );
+      return res.status(201).json({ ok: true, data: { document } });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
 app.get('/api/application/documents', requireAuth, requireVerified, async (req, res, next) => {
   try {
-    const documents = await applicationService.listApplicationDocuments(req.applicant.id);
+    const documents = (await applicationService.listApplicationDocuments(req.applicant.id)).map((document) => ({
+      ...document,
+      filename: document.original_name,
+      size: document.file_size,
+    }));
     return res.json({ ok: true, data: { documents } });
   } catch (error) {
     return next(error);
@@ -192,38 +251,57 @@ app.get('/api/application/documents', requireAuth, requireVerified, async (req, 
 app.post('/api/application/documents', requireAuth, requireVerified, csrfProtection,
   express.raw({ type: ['application/pdf', 'image/jpeg', 'image/png'], limit: '10mb' }), async (req, res, next) => {
     try {
+      const originalName = typeof req.query.name === 'string' ? req.query.name : '';
       const document = await applicationService.saveApplicationDocument(
         req.applicant.id,
-        req.query.name,
+        'additional',
         req.body,
         req.get('Content-Type')?.split(';')[0],
+        originalName,
       );
-      return res.status(201).json({ ok: true, data: { document } });
+      return res.status(201).json({
+        ok: true,
+        data: {
+          document: { ...document, filename: document.original_name, size: document.file_size },
+        },
+      });
     } catch (error) {
       return next(error);
     }
   });
 
-app.get('/api/application/documents/:documentId/file', requireAuth, requireVerified, async (req, res, next) => {
+async function sendApplicationDocument(req, res, next) {
   try {
-    const document = await applicationService.getApplicationDocument(req.applicant.id, req.params.documentId);
-    if (!document) {
-      return res.status(404).json({ ok: false, error: { code: 'DOCUMENT_NOT_FOUND', message: 'The document was not found.' } });
+    const documentId = Number(req.params.id);
+    if (!Number.isSafeInteger(documentId) || documentId < 1) {
+      return res.status(404).json({ ok: false, error: { code: 'DOCUMENT_NOT_FOUND', message: 'The requested document was not found.' } });
     }
+    const document = await applicationService.getApplicationDocument(req.applicant.id, documentId);
+    if (!document) {
+      return res.status(404).json({ ok: false, error: { code: 'DOCUMENT_NOT_FOUND', message: 'The requested document was not found.' } });
+    }
+    const fallbackName = document.original_name.replace(/[^\x20-\x7e]|["\\]/g, '_');
     res.set('Cache-Control', 'private, no-store');
     res.set('X-Content-Type-Options', 'nosniff');
-    res.set('Content-Disposition', `attachment; filename="${document.filename.replace(/["\\]/g, '_')}"`);
-    return res.type(document.mime_type).send(document.data);
+    res.set(
+      'Content-Disposition',
+      `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(document.original_name)}`,
+    );
+    return res.type(document.mime_type).send(document.file_data);
   } catch (error) {
     return next(error);
   }
-});
+}
 
-app.delete('/api/application/documents/:documentId', requireAuth, requireVerified, csrfProtection, async (req, res, next) => {
+app.get('/api/application/documents/:id', requireAuth, requireVerified, sendApplicationDocument);
+app.get('/api/application/documents/:id/file', requireAuth, requireVerified, sendApplicationDocument);
+
+app.delete('/api/application/documents/:id', requireAuth, requireVerified, csrfProtection, async (req, res, next) => {
   try {
-    const deleted = await applicationService.deleteApplicationDocument(req.applicant.id, req.params.documentId);
-    if (!deleted) {
-      return res.status(404).json({ ok: false, error: { code: 'DOCUMENT_NOT_FOUND', message: 'The document was not found.' } });
+    const documentId = Number(req.params.id);
+    if (!Number.isSafeInteger(documentId) || documentId < 1
+      || !await applicationService.deleteApplicationDocument(req.applicant.id, documentId)) {
+      return res.status(404).json({ ok: false, error: { code: 'DOCUMENT_NOT_FOUND', message: 'The requested document was not found.' } });
     }
     return res.json({ ok: true, data: { deleted: true } });
   } catch (error) {
@@ -253,12 +331,14 @@ app.get('/documents', requireAuth, requireVerified, (req, res) => sendFile(res, 
 
 app.get('/style.css', (req, res) => sendFile(res, 'style.css'));
 app.get('/favicon.svg', (req, res) => sendFile(res, 'favicon.svg'));
-app.get('/eaims-logo.jpeg', (req, res) => sendFile(res, path.join('src', 'EAIMS logo.jpeg')));
-app.get('/grad.JPG.jpeg', (req, res) => sendFile(res, 'grad.JPG.jpeg'));
-app.get('/grad2.jpeg', (req, res) => sendFile(res, 'grad2.jpeg'));
-app.get('/grad4.png', (req, res) => sendFile(res, 'grad4.png'));
-app.get('/EAIMS%20logo.jpg', (req, res) => sendFile(res, 'EAIMS logo.jpg'));
-app.get('/EAIMS%20logo.jpeg', (req, res) => sendFile(res, 'EAIMS logo.jpeg'));
+app.get('/favicon.png', (req, res) => sendFile(res, 'favicon.png'));
+app.get('/eaims-logo.jpeg', (req, res) => sendFile(res, 'eaims-logo.jpeg'));
+app.get(/\.(jpe?g|png|gif|ico|webp)$/i, (req, res, next) => {
+  res.sendFile(req.path, { root: __dirname }, (err) => {
+    if (err) next();
+  });
+});
+
 app.use('/js', express.static(path.join(__dirname, 'public', 'js'), {
   immutable: true,
   maxAge: config.nodeEnv === 'production' ? '1d' : 0,

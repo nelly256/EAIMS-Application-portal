@@ -132,7 +132,7 @@ router.post('/login', csrfProtection, asyncRoute(async (req, res) => {
 }));
 
 router.post('/logout', csrfProtection, asyncRoute(async (req, res) => {
-  await new Promise((resolve) => req.session.destroy(resolve));
+  await new Promise((resolve, reject) => req.session.destroy((error) => (error ? reject(error) : resolve())));
   res.clearCookie('eaims.sid', {
     path: '/',
     httpOnly: true,

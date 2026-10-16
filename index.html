@@ -16,7 +16,7 @@
   <header class="header">
     <div class="container header-inner">
       <a href="/" class="logo">
-        <img src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" class="logo-img" />
+        <img src="/eaims-logo.jpeg" alt="East African Institute for Management Science logo" class="logo-img" />
       </a>
       <nav class="nav" id="nav">
         <ul class="nav-list">
@@ -183,7 +183,7 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <a href="/" class="logo footer-logo">
-            <img src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" />
+            <img src="/eaims-logo.jpeg" alt="East African Institute for Management Science logo" />
           </a>
           <p class="footer-about">East African Institute for Management Science — practical, accredited education that prepares you for a career.</p>
         </div>
@@ -210,61 +210,6 @@
     </div>
   </footer>
 
-  <script>
-    const navToggle = document.getElementById('navToggle');
-    const nav = document.getElementById('nav');
-
-    navToggle.addEventListener('click', () => {
-      const open = nav.classList.toggle('open');
-      navToggle.setAttribute('aria-expanded', String(open));
-    });
-
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', () => {
-        nav.classList.remove('open');
-        navToggle.setAttribute('aria-expanded', 'false');
-      });
-    });
-
-    const countElements = document.querySelectorAll('.banner-number[data-count]');
-    const animateCount = (el, target) => {
-      const duration = 2000;
-      const step = target / (duration / 16);
-      let current = 0;
-      const update = () => {
-        current += step;
-        if (current >= target) {
-          el.textContent = target + '+';
-        } else {
-          el.textContent = Math.floor(current) + '+';
-          requestAnimationFrame(update);
-        }
-      };
-      update();
-    };
-    const statsEl = document.querySelector('.hero-banner');
-    if ('IntersectionObserver' in window && statsEl) {
-      const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-          countElements.forEach(el => animateCount(el, parseInt(el.dataset.count, 10)));
-          observer.disconnect();
-        }
-      }, { threshold: 0.4 });
-      observer.observe(statsEl);
-    }
-
-    const slides = document.querySelectorAll('.hero-slider .slide');
-    if (slides.length > 1) {
-      let currentSlide = 0;
-      slides[0].classList.add('active');
-      setInterval(() => {
-        slides[currentSlide].classList.remove('active');
-        currentSlide = (currentSlide + 1) % slides.length;
-        slides[currentSlide].classList.add('active');
-      }, 5000);
-    } else if (slides.length === 1) {
-      slides[0].classList.add('active');
-    }
-  </script>
+  <script src="/js/home.js"></script>
 </body>
 </html>

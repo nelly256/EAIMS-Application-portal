@@ -93,6 +93,11 @@ CREATE TABLE IF NOT EXISTS application_profiles (
   date_of_birth TEXT NOT NULL DEFAULT '',
   gender TEXT NOT NULL DEFAULT '',
   physical_address TEXT NOT NULL DEFAULT '',
+  next_of_kin_name TEXT NOT NULL DEFAULT '',
+  next_of_kin_contact TEXT NOT NULL DEFAULT '',
+  training_arrangements TEXT NOT NULL DEFAULT '[]',
+  employment_history TEXT NOT NULL DEFAULT '[]',
+  course_reason TEXT NOT NULL DEFAULT '',
   passport_photo BLOB,
   passport_photo_mime TEXT,
   updated_at TEXT DEFAULT (datetime('now')),
@@ -102,15 +107,23 @@ CREATE TABLE IF NOT EXISTS application_profiles (
 CREATE TABLE IF NOT EXISTS application_documents (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   applicant_id INTEGER NOT NULL,
-  filename TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('transcript', 'identity', 'additional')),
+  original_name TEXT NOT NULL,
   mime_type TEXT NOT NULL,
-  data BLOB NOT NULL,
+  file_size INTEGER NOT NULL,
+  file_data BLOB NOT NULL,
   created_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_application_documents_applicant
-  ON application_documents(applicant_id, created_at);
+CREATE TABLE IF NOT EXISTS application_program_selections (
+  applicant_id INTEGER PRIMARY KEY,
+  program_id TEXT NOT NULL,
+  intake TEXT NOT NULL DEFAULT '',
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
 
 CREATE TABLE IF NOT EXISTS sessions (
   sid TEXT PRIMARY KEY,
@@ -123,6 +136,60 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 
 async function migrate() {
   await exec(SCHEMA);
+  const profileColumns = await all('PRAGMA table_info(application_profiles)');
+  if (!profileColumns.some((column) => column.name === 'next_of_kin_name')) {
+    await exec("ALTER TABLE application_profiles ADD COLUMN next_of_kin_name TEXT NOT NULL DEFAULT ''");
+  }
+  if (!profileColumns.some((column) => column.name === 'next_of_kin_contact')) {
+    await exec("ALTER TABLE application_profiles ADD COLUMN next_of_kin_contact TEXT NOT NULL DEFAULT ''");
+  }
+  if (!profileColumns.some((column) => column.name === 'training_arrangements')) {
+    await exec("ALTER TABLE application_profiles ADD COLUMN training_arrangements TEXT NOT NULL DEFAULT '[]'");
+  }
+  if (!profileColumns.some((column) => column.name === 'employment_history')) {
+    await exec("ALTER TABLE application_profiles ADD COLUMN employment_history TEXT NOT NULL DEFAULT '[]'");
+  }
+  if (!profileColumns.some((column) => column.name === 'course_reason')) {
+    await exec("ALTER TABLE application_profiles ADD COLUMN course_reason TEXT NOT NULL DEFAULT ''");
+  }
+  const programSelectionColumns = await all('PRAGMA table_info(application_program_selections)');
+  if (!programSelectionColumns.some((column) => column.name === 'intake')) {
+    await exec("ALTER TABLE application_program_selections ADD COLUMN intake TEXT NOT NULL DEFAULT ''");
+  }
+
+  const documentColumns = await all('PRAGMA table_info(application_documents)');
+  const documentColumnNames = new Set(documentColumns.map((column) => column.name));
+  if (documentColumnNames.has('filename') && documentColumnNames.has('data')
+    && !documentColumnNames.has('category')) {
+    await transaction(async () => {
+      await run('DROP INDEX IF EXISTS idx_application_documents_applicant');
+      await run('ALTER TABLE application_documents RENAME TO application_documents_legacy');
+      await exec(`
+        CREATE TABLE application_documents (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          applicant_id INTEGER NOT NULL,
+          category TEXT NOT NULL CHECK (category IN ('transcript', 'identity', 'additional')),
+          original_name TEXT NOT NULL,
+          mime_type TEXT NOT NULL,
+          file_size INTEGER NOT NULL,
+          file_data BLOB NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+        )
+      `);
+      await run(`
+        INSERT INTO application_documents
+          (id, applicant_id, category, original_name, mime_type, file_size, file_data, created_at)
+        SELECT id, applicant_id, 'additional', filename, mime_type, length(data), data, created_at
+        FROM application_documents_legacy
+      `);
+      await run('DROP TABLE application_documents_legacy');
+    });
+  }
+  await exec(`
+    CREATE INDEX IF NOT EXISTS idx_application_documents_applicant
+    ON application_documents(applicant_id, category, created_at)
+  `);
 }
 
 async function transaction(work) {

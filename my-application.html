@@ -13,7 +13,7 @@
   <div class="portal-dashboard application-portal-dashboard">
     <aside class="student-sidebar" aria-label="Student portal sidebar">
       <a href="/dashboard" class="student-brand" aria-label="EAIMS student dashboard">
-        <img src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" />
+        <img src="/eaims-logo.jpeg" alt="East African Institute for Management Science logo" />
       </a>
       <p class="sidebar-section-label">STUDENT PORTAL NAVIGATION</p>
       <nav class="student-navigation" aria-label="Student portal navigation">
@@ -43,21 +43,27 @@
       <p class="application-number" id="applicationReference"><i class="fas fa-pen-to-square" aria-hidden="true"></i> Applicant registration</p>
       <h1>Complete Your Registration in 3 Simple Steps</h1>
       <p>Fill in your details below. Your progress is automatically saved as you type.</p>
-      <ol class="application-stepper" id="progress" aria-label="Application steps">
-        <li class="step-current" aria-current="step">
-          <span class="step-marker">1</span>
-          <strong>Personal Info</strong>
-          <small>Current step</small>
+      <ol class="application-stepper" id="progress" aria-label="Application steps" data-active-step="1">
+        <li class="step-current">
+          <button class="step-navigation-button" type="button" data-step-target="1" aria-controls="personalInfoSection" aria-current="step">
+            <span class="step-marker">1</span>
+            <strong>Personal Info</strong>
+            <small>Current step</small>
+          </button>
         </li>
         <li>
-          <span class="step-marker">2</span>
-          <strong>Program Selection</strong>
-          <small>Not started</small>
+          <button class="step-navigation-button" type="button" data-step-target="2" aria-controls="programSelectionSection">
+            <span class="step-marker">2</span>
+            <strong>Program Selection</strong>
+            <small>Not started</small>
+          </button>
         </li>
         <li>
-          <span class="step-marker">3</span>
-          <strong>Document Upload</strong>
-          <small>Not started</small>
+          <button class="step-navigation-button" type="button" data-step-target="3" aria-controls="documentUploadSection">
+            <span class="step-marker">3</span>
+            <strong>Document Upload</strong>
+            <small>Not started</small>
+          </button>
         </li>
       </ol>
     </div>
@@ -68,7 +74,7 @@
     <div id="applicationSuccess" class="application-save-message" role="status" aria-live="polite" hidden></div>
 
     <form id="applicationProfileForm" class="application-form" novalidate>
-      <section class="application-section" aria-labelledby="personalInfoTitle">
+      <section class="application-section" id="personalInfoSection" aria-labelledby="personalInfoTitle">
         <header class="application-section-header">
           <h2 id="personalInfoTitle"><i class="fas fa-circle-user" aria-hidden="true"></i> Personal Information</h2>
           <span class="application-progress-tag is-in-progress" id="applicationProgressTag"><span></span>In Progress</span>
@@ -149,6 +155,170 @@
             </div>
           </div>
 
+          <div class="application-field-group application-next-of-kin-group">
+            <h3><i class="fas fa-user-shield" aria-hidden="true"></i> Next of Kin</h3>
+            <p class="application-field-help">Provide someone we can contact in case of an emergency.</p>
+            <div class="application-fields-grid">
+              <div class="application-field">
+                <label for="nextOfKinName">Full Name <span>*</span></label>
+                <input id="nextOfKinName" name="nextOfKinName" autocomplete="off" maxlength="80" required />
+                <p class="application-field-error" data-error-for="nextOfKinName" hidden></p>
+              </div>
+              <div class="application-field">
+                <label for="nextOfKinContact">Contact Number <span>*</span></label>
+                <input id="nextOfKinContact" name="nextOfKinContact" type="tel" autocomplete="tel" maxlength="25" placeholder="+256 700 000 000" required />
+                <p class="application-field-error" data-error-for="nextOfKinContact" hidden></p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="application-section program-selection-section" id="programSelectionSection" aria-labelledby="programSelectionTitle" hidden>
+        <header class="application-section-header">
+          <h2 id="programSelectionTitle"><i class="fas fa-graduation-cap" aria-hidden="true"></i> Choose Your Program</h2>
+          <span class="application-progress-tag is-in-progress" id="programSelectionStatus"><span></span>One choice</span>
+        </header>
+        <div class="application-section-content">
+          <p class="program-selection-intro">Choose a study level, select one program, and choose your preferred intake.</p>
+          <fieldset class="program-level-fieldset">
+            <legend><i class="fas fa-layer-group" aria-hidden="true"></i> Study Level <span>*</span></legend>
+            <div class="program-level-cards" id="programLevelCards" role="group" aria-label="Choose a study level">
+              <button class="program-level-card" type="button" data-program-level="Short courses" aria-pressed="false">
+                <span class="program-level-icon"><i class="fas fa-bolt" aria-hidden="true"></i></span>
+                <strong>Short Courses</strong>
+                <small>Professional skills</small>
+              </button>
+              <button class="program-level-card" type="button" data-program-level="Certificate" aria-pressed="false">
+                <span class="program-level-icon"><i class="fas fa-certificate" aria-hidden="true"></i></span>
+                <strong>Certificate</strong>
+                <small>Certificate Programs</small>
+              </button>
+              <button class="program-level-card" type="button" data-program-level="Diploma" aria-pressed="false">
+                <span class="program-level-icon"><i class="fas fa-graduation-cap" aria-hidden="true"></i></span>
+                <strong>Diploma</strong>
+                <small>Diploma Programs</small>
+              </button>
+            </div>
+          </fieldset>
+
+          <section class="program-catalog-section" aria-labelledby="programCatalogTitle">
+            <header class="program-catalog-heading">
+              <div>
+                <h3 id="programCatalogTitle">Available Programs</h3>
+                <p id="programHelp">Choose a study level to see its programs.</p>
+              </div>
+              <p class="application-field-error" id="programError" role="alert" hidden></p>
+            </header>
+            <div class="program-catalog-table-wrapper" id="programCatalogTableWrapper" hidden>
+              <table class="program-catalog-table">
+                <thead>
+                  <tr><th scope="col">Choose</th><th scope="col">Program</th><th scope="col">Duration</th><th scope="col">Tuition</th></tr>
+                </thead>
+                <tbody id="programTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <fieldset class="intake-fieldset">
+            <legend><i class="fas fa-calendar-days" aria-hidden="true"></i> Choose an Intake <span>*</span></legend>
+            <div class="intake-cards" id="intakeCards" role="group" aria-label="Choose an intake"></div>
+          </fieldset>
+
+          <aside class="program-choice-summary" id="programChoiceSummary" aria-live="polite" hidden>
+            <i class="fas fa-book-open" aria-hidden="true"></i>
+            <div>
+              <strong id="programChoiceName"></strong>
+              <p><span id="programChoiceLevel"></span><span aria-hidden="true"> · </span><span id="programChoiceDuration"></span><span aria-hidden="true"> · </span><span id="programChoiceTuition"></span></p>
+              <p id="programChoiceIntake"></p>
+            </div>
+          </aside>
+
+          <div class="application-field-group application-study-details-group">
+            <h3><i class="fas fa-clock" aria-hidden="true"></i> Training Time and Arrangement</h3>
+            <fieldset class="application-checkbox-fieldset" id="trainingArrangementsGroup" aria-describedby="trainingArrangementsHelp trainingArrangementsError">
+              <legend>Select all that apply</legend>
+              <div class="application-checkbox-options">
+                <label><input type="checkbox" name="trainingArrangements" value="Day" /> Day</label>
+                <label><input type="checkbox" name="trainingArrangements" value="Evening" /> Evening</label>
+                <label><input type="checkbox" name="trainingArrangements" value="By Modules" /> By Modules</label>
+                <label><input type="checkbox" name="trainingArrangements" value="By Correspondence" /> By Correspondence</label>
+                <label><input type="checkbox" name="trainingArrangements" value="Weekend" /> Weekend (Saturday and Sunday)</label>
+              </div>
+            </fieldset>
+            <p class="application-field-help" id="trainingArrangementsHelp">Choose any study times or arrangements that suit you.</p>
+            <p class="application-field-error" id="trainingArrangementsError" data-error-for="trainingArrangements" role="alert" hidden></p>
+          </div>
+
+          <div class="application-field-group">
+            <h3><i class="fas fa-briefcase" aria-hidden="true"></i> Employment Record <small>(if any)</small></h3>
+            <p class="application-field-help">Start with your current job. Add up to four positions; leave “To” blank for a current position.</p>
+            <div class="employment-history-table-wrapper">
+              <table class="employment-history-table" aria-label="Employment history">
+                <thead>
+                  <tr>
+                    <th scope="col">Position</th>
+                    <th scope="col">Organization/Employer</th>
+                    <th scope="colgroup" colspan="2">Year(s)</th>
+                  </tr>
+                  <tr>
+                    <th scope="col"><span class="visually-hidden">Position</span></th>
+                    <th scope="col"><span class="visually-hidden">Organization/Employer</span></th>
+                    <th scope="col">From</th>
+                    <th scope="col">To</th>
+                  </tr>
+                </thead>
+                <tbody id="employmentHistoryRows">
+                  <tr class="employment-history-row">
+                    <td><input type="text" data-employment-field="position" maxlength="120" aria-label="Position for employment record 1" /></td>
+                    <td><input type="text" data-employment-field="organization" maxlength="160" aria-label="Organization or employer for employment record 1" /></td>
+                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="fromYear" aria-label="Start year for employment record 1" /></td>
+                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="toYear" aria-label="End year for employment record 1" /></td>
+                  </tr>
+                  <tr class="employment-history-row">
+                    <td><input type="text" data-employment-field="position" maxlength="120" aria-label="Position for employment record 2" /></td>
+                    <td><input type="text" data-employment-field="organization" maxlength="160" aria-label="Organization or employer for employment record 2" /></td>
+                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="fromYear" aria-label="Start year for employment record 2" /></td>
+                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="toYear" aria-label="End year for employment record 2" /></td>
+                  </tr>
+                  <tr class="employment-history-row">
+                    <td><input type="text" data-employment-field="position" maxlength="120" aria-label="Position for employment record 3" /></td>
+                    <td><input type="text" data-employment-field="organization" maxlength="160" aria-label="Organization or employer for employment record 3" /></td>
+                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="fromYear" aria-label="Start year for employment record 3" /></td>
+                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="toYear" aria-label="End year for employment record 3" /></td>
+                  </tr>
+                  <tr class="employment-history-row">
+                    <td><input type="text" data-employment-field="position" maxlength="120" aria-label="Position for employment record 4" /></td>
+                    <td><input type="text" data-employment-field="organization" maxlength="160" aria-label="Organization or employer for employment record 4" /></td>
+                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="fromYear" aria-label="Start year for employment record 4" /></td>
+                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="toYear" aria-label="End year for employment record 4" /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="application-field-error" data-error-for="employmentHistory" role="alert" hidden></p>
+          </div>
+
+          <div class="application-field-group application-course-reason-group">
+            <h3><i class="fas fa-comment-dots" aria-hidden="true"></i> Reason for Course and Expectations <small>(optional)</small></h3>
+            <div class="application-field">
+              <label for="courseReason">State the reason for the course chosen and your expectations</label>
+              <textarea id="courseReason" name="courseReason" rows="5" maxlength="4000" aria-describedby="courseReasonHelp courseReasonError"></textarea>
+              <p class="application-field-help" id="courseReasonHelp">Your response is optional and can be updated later.</p>
+              <p class="application-field-error" id="courseReasonError" data-error-for="courseReason" role="alert" hidden></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="application-section document-upload-section" id="documentUploadSection" aria-labelledby="documentUploadTitle" hidden>
+        <header class="application-section-header">
+          <h2 id="documentUploadTitle"><i class="fas fa-folder-open" aria-hidden="true"></i> Document Upload</h2>
+          <span class="application-progress-tag is-in-progress" id="documentUploadStatus"><span></span>Required</span>
+        </header>
+        <div class="application-section-content">
+          <p class="program-selection-intro">Upload your passport photo, academic transcripts, and National ID or passport. Additional supporting documents are optional.</p>
           <div class="application-field-group application-photo-group" id="documents">
             <h3><i class="fas fa-camera" aria-hidden="true"></i> Passport Photo</h3>
             <div class="photo-upload-layout">
@@ -163,12 +333,64 @@
             <p class="application-field-help"><i class="fas fa-circle-info" aria-hidden="true"></i> Upload a clear, passport-style photo (JPG, PNG, max 5 MB)</p>
             <p class="application-field-error" data-error-for="passportPhoto" hidden></p>
           </div>
+
+          <section class="application-document-group" aria-labelledby="transcriptUploadTitle">
+            <header class="application-document-heading">
+              <div>
+                <h3 id="transcriptUploadTitle"><i class="fas fa-file-lines" aria-hidden="true"></i> Academic Transcripts <span>*</span></h3>
+                <p>Upload one or more transcript files. PDF, JPEG, or PNG; up to 10 MB per file.</p>
+              </div>
+            </header>
+            <label class="application-document-dropzone" for="transcriptFiles">
+              <i class="fas fa-cloud-arrow-up" aria-hidden="true"></i>
+              <span><strong>Choose transcripts</strong> or select multiple files</span>
+              <input id="transcriptFiles" type="file" accept="application/pdf,image/jpeg,image/png" multiple />
+            </label>
+            <p class="application-field-error" id="transcriptUploadError" role="alert" hidden></p>
+            <ul class="application-document-list" id="transcriptDocumentList" aria-live="polite"></ul>
+          </section>
+
+          <section class="application-document-group" aria-labelledby="identityUploadTitle">
+            <header class="application-document-heading">
+              <div>
+                <h3 id="identityUploadTitle"><i class="fas fa-id-card" aria-hidden="true"></i> National ID or Passport <span>*</span></h3>
+                <p>Upload one clear copy of your National ID or passport. PDF, JPEG, or PNG; up to 10 MB.</p>
+              </div>
+            </header>
+            <label class="application-document-dropzone" for="identityFile">
+              <i class="fas fa-cloud-arrow-up" aria-hidden="true"></i>
+              <span><strong>Choose an identity document</strong></span>
+              <input id="identityFile" type="file" accept="application/pdf,image/jpeg,image/png" />
+            </label>
+            <p class="application-field-error" id="identityUploadError" role="alert" hidden></p>
+            <ul class="application-document-list" id="identityDocumentList" aria-live="polite"></ul>
+          </section>
+
+          <section class="application-document-group" aria-labelledby="additionalUploadTitle">
+            <header class="application-document-heading">
+              <div>
+                <h3 id="additionalUploadTitle"><i class="fas fa-folder-plus" aria-hidden="true"></i> Additional Documents <small>Optional</small></h3>
+                <p>Add any other supporting documents you would like the admissions team to review. PDF, JPEG, or PNG; up to 10 MB per file.</p>
+              </div>
+            </header>
+            <label class="application-document-dropzone" for="additionalFiles">
+              <i class="fas fa-cloud-arrow-up" aria-hidden="true"></i>
+              <span><strong>Choose additional files</strong> or select multiple files</span>
+              <input id="additionalFiles" type="file" accept="application/pdf,image/jpeg,image/png" multiple />
+            </label>
+            <p class="application-field-error" id="additionalUploadError" role="alert" hidden></p>
+            <ul class="application-document-list" id="additionalDocumentList" aria-live="polite"></ul>
+          </section>
         </div>
       </section>
 
       <footer class="application-actions">
-        <p id="nextStepHelp">Program selection will be available when applications open.</p>
+        <p id="nextStepHelp">Complete the required personal details to unlock program selection.</p>
         <button class="application-continue-button" id="continueProgramButton" type="button" disabled>Continue to Program Selection <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+        <button class="application-continue-button" id="backToPersonalButton" type="button" hidden><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Personal Info</button>
+        <button class="application-continue-button" id="saveProgramButton" type="button" hidden disabled>Save Program Choice</button>
+        <button class="application-continue-button" id="continueDocumentsButton" type="button" hidden disabled>Continue to Documents <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+        <button class="application-continue-button" id="backToProgramButton" type="button" hidden><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Program Selection</button>
       </footer>
     </form>
   </div>

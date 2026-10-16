@@ -2,10 +2,15 @@
 
 const db = require('../db');
 const { COUNTRY_CODES, validDate, validName } = require('../validation');
+const programCatalog = require('./program-catalog');
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
-const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
-const DOCUMENT_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const MAX_APPLICATION_DOCUMENT_BYTES = 10 * 1024 * 1024;
+const APPLICATION_DOCUMENT_CATEGORIES = ['transcript', 'identity', 'additional'];
+const APPLICATION_DOCUMENT_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const TRAINING_ARRANGEMENTS = ['Day', 'Evening', 'By Modules', 'By Correspondence', 'Weekend'];
+const EMPLOYMENT_HISTORY_LIMIT = 4;
+const COURSE_REASON_MAX_LENGTH = 4000;
 const FIELD_COLUMNS = {
   firstName: 'first_name',
   lastName: 'last_name',
@@ -14,6 +19,11 @@ const FIELD_COLUMNS = {
   dateOfBirth: 'date_of_birth',
   gender: 'gender',
   physicalAddress: 'physical_address',
+  nextOfKinName: 'next_of_kin_name',
+  nextOfKinContact: 'next_of_kin_contact',
+  trainingArrangements: 'training_arrangements',
+  employmentHistory: 'employment_history',
+  courseReason: 'course_reason',
 };
 
 class ApplicationError extends Error {
@@ -54,13 +64,92 @@ function validateField(field, value) {
   if (field === 'physicalAddress') {
     return cleaned.length >= 5 ? '' : 'Enter a complete physical address.';
   }
+  if (field === 'nextOfKinName') {
+    return validName(cleaned) ? '' : 'Enter a valid next-of-kin name.';
+  }
+  if (field === 'nextOfKinContact') {
+    const digits = cleaned.replace(/\D/g, '');
+    return /^\+?[0-9][0-9\s().-]*$/.test(cleaned) && digits.length >= 7 && digits.length <= 15
+      ? ''
+      : 'Enter a valid contact number with 7 to 15 digits.';
+  }
   return 'This field cannot be saved.';
+}
+
+function normalizeProfileField(field, value) {
+  if (field === 'trainingArrangements') {
+    if (!Array.isArray(value) || value.length > TRAINING_ARRANGEMENTS.length
+      || value.some((item) => typeof item !== 'string')) {
+      return { error: 'Choose valid training arrangements.' };
+    }
+    const selected = value.map(clean);
+    if (new Set(selected).size !== selected.length
+      || selected.some((item) => !TRAINING_ARRANGEMENTS.includes(item))) {
+      return { error: 'Choose valid training arrangements.' };
+    }
+    return {
+      value: JSON.stringify(TRAINING_ARRANGEMENTS.filter((item) => selected.includes(item))),
+      error: '',
+    };
+  }
+
+  if (field === 'employmentHistory') {
+    if (!Array.isArray(value) || value.length > EMPLOYMENT_HISTORY_LIMIT) {
+      return { error: `Enter no more than ${EMPLOYMENT_HISTORY_LIMIT} employment records.` };
+    }
+    const records = [];
+    const allowedKeys = ['position', 'organization', 'fromYear', 'toYear'];
+    const currentYear = new Date().getFullYear();
+    const validYear = (year) => /^\d{4}$/.test(year)
+      && Number(year) >= 1900
+      && Number(year) <= currentYear;
+
+    for (const record of value) {
+      if (!record || typeof record !== 'object' || Array.isArray(record)
+        || Object.keys(record).some((key) => !allowedKeys.includes(key))) {
+        return { error: 'Enter valid employment records.' };
+      }
+      const normalized = {};
+      for (const key of allowedKeys) {
+        const entry = record[key] == null ? '' : record[key];
+        if (typeof entry !== 'string') return { error: 'Enter valid employment records.' };
+        normalized[key] = clean(entry);
+      }
+
+      if (Object.values(normalized).every((entry) => !entry)) continue;
+      if (normalized.position.length > 120 || normalized.organization.length > 160) {
+        return { error: 'Employment position or organization is too long.' };
+      }
+      if ((normalized.fromYear && !validYear(normalized.fromYear))
+        || (normalized.toYear && !validYear(normalized.toYear))) {
+        return { error: `Enter employment years between 1900 and ${currentYear}.` };
+      }
+      if (normalized.fromYear && normalized.toYear && Number(normalized.toYear) < Number(normalized.fromYear)) {
+        return { error: 'An employment end year cannot be earlier than its start year.' };
+      }
+      records.push(normalized);
+    }
+    return { value: JSON.stringify(records), error: '' };
+  }
+
+  if (field === 'courseReason') {
+    if (typeof value !== 'string') return { error: 'Enter a valid course reason.' };
+    const normalized = value.replace(/\r\n?/g, '\n').trim();
+    return normalized.length <= COURSE_REASON_MAX_LENGTH
+      ? { value: normalized, error: '' }
+      : { error: `Keep your response to ${COURSE_REASON_MAX_LENGTH} characters or fewer.` };
+  }
+
+  const normalized = clean(value);
+  return { value: normalized, error: validateField(field, normalized) };
 }
 
 async function getApplicationProfile(applicantId) {
   return db.get(
     `SELECT first_name, last_name, id_number, country_of_birth, date_of_birth, gender,
-          physical_address, passport_photo_mime, updated_at,
+          physical_address, next_of_kin_name, next_of_kin_contact,
+          training_arrangements, employment_history, course_reason,
+          passport_photo_mime, updated_at,
             CASE WHEN passport_photo IS NULL THEN 0 ELSE 1 END AS has_passport_photo
      FROM application_profiles WHERE applicant_id = ?`,
     [applicantId],
@@ -76,9 +165,9 @@ async function saveApplicationProfile(applicantId, updates) {
   const values = {};
   const errors = {};
   for (const field of fields) {
-    values[field] = clean(updates[field]);
-    const error = validateField(field, values[field]);
-    if (error) errors[field] = error;
+    const normalized = normalizeProfileField(field, updates[field]);
+    if (normalized.value !== undefined) values[field] = normalized.value;
+    if (normalized.error) errors[field] = normalized.error;
   }
   if (Object.keys(errors).length) {
     throw new ApplicationError(400, 'VALIDATION_ERROR', 'Check the highlighted fields and try again.', errors);
@@ -125,58 +214,85 @@ async function getPassportPhoto(applicantId) {
   );
 }
 
-function documentFormatError(message) {
-  return new ApplicationError(400, 'INVALID_DOCUMENT', message, { document: message });
+function documentUploadError(message, field = 'document') {
+  return new ApplicationError(400, 'INVALID_DOCUMENT', message, { [field]: message });
 }
 
-function cleanDocumentFilename(filename) {
-  return String(filename || '')
-    .split(/[\\/]/)
+function hasValidDocumentSignature(buffer, mimeType) {
+  if (mimeType === 'application/pdf') return buffer.subarray(0, 5).toString('ascii') === '%PDF-';
+  if (mimeType === 'image/jpeg') {
+    return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  }
+  if (mimeType === 'image/png') {
+    return buffer.length >= 8 && buffer.subarray(0, 8).equals(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
+  }
+  return false;
+}
+
+function cleanDocumentFileName(value) {
+  const fileName = String(value || '')
+    .replace(/\\/g, '/')
+    .split('/')
     .pop()
     .replace(/[\u0000-\u001f\u007f]/g, '')
-    .trim()
-    .slice(0, 180);
+    .trim();
+  if (!fileName || fileName.length > 255) {
+    throw documentUploadError('Choose a file with a valid name.', 'file');
+  }
+  return fileName;
 }
 
 async function listApplicationDocuments(applicantId) {
   return db.all(
-    `SELECT id, filename, mime_type, length(data) AS size, created_at
-     FROM application_documents WHERE applicant_id = ? ORDER BY created_at DESC, id DESC`,
+    `SELECT id, category, original_name, mime_type, file_size, created_at
+     FROM application_documents
+     WHERE applicant_id = ?
+     ORDER BY created_at, id`,
     [applicantId],
   );
 }
 
-async function saveApplicationDocument(applicantId, filename, buffer, mimeType) {
-  const safeFilename = cleanDocumentFilename(filename);
-  if (!safeFilename) throw documentFormatError('Choose a document with a valid filename.');
-  if (!Buffer.isBuffer(buffer) || buffer.length === 0) throw documentFormatError('Choose a document to upload.');
-  if (buffer.length > MAX_DOCUMENT_BYTES) throw documentFormatError('Choose a document smaller than 10 MB.');
-  if (!DOCUMENT_MIME_TYPES.includes(mimeType)) {
-    throw documentFormatError('Upload a PDF, JPEG, or PNG document.');
+async function saveApplicationDocument(applicantId, category, buffer, mimeType, originalName) {
+  if (!APPLICATION_DOCUMENT_CATEGORIES.includes(category)) {
+    throw documentUploadError('Choose a supported document category.', 'category');
+  }
+  if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
+    throw documentUploadError('Choose a file to upload.', 'file');
+  }
+  if (buffer.length > MAX_APPLICATION_DOCUMENT_BYTES) {
+    throw documentUploadError('Choose a document smaller than 10 MB.', 'file');
+  }
+  if (!APPLICATION_DOCUMENT_MIME_TYPES.includes(mimeType) || !hasValidDocumentSignature(buffer, mimeType)) {
+    throw documentUploadError('Upload a valid PDF, JPEG, or PNG document.', 'file');
   }
 
-  const validSignature = mimeType === 'application/pdf'
-    ? buffer.subarray(0, 5).toString('ascii') === '%PDF-'
-    : mimeType === 'image/jpeg'
-      ? buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
-      : buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-  if (!validSignature) throw documentFormatError('The document content does not match its file type.');
-
-  const result = await db.run(
-    `INSERT INTO application_documents (applicant_id, filename, mime_type, data)
-     VALUES (?, ?, ?, ?)`,
-    [applicantId, safeFilename, mimeType, buffer],
-  );
-  return db.get(
-    `SELECT id, filename, mime_type, length(data) AS size, created_at
-     FROM application_documents WHERE id = ? AND applicant_id = ?`,
-    [result.id, applicantId],
-  );
+  const fileName = cleanDocumentFileName(originalName);
+  return db.transaction(async () => {
+    if (category === 'identity') {
+      await db.run(
+        'DELETE FROM application_documents WHERE applicant_id = ? AND category = ?',
+        [applicantId, category],
+      );
+    }
+    const result = await db.run(
+      `INSERT INTO application_documents
+       (applicant_id, category, original_name, mime_type, file_size, file_data)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [applicantId, category, fileName, mimeType, buffer.length, buffer],
+    );
+    return db.get(
+      `SELECT id, category, original_name, mime_type, file_size, created_at
+       FROM application_documents WHERE id = ? AND applicant_id = ?`,
+      [result.id, applicantId],
+    );
+  });
 }
 
 async function getApplicationDocument(applicantId, documentId) {
   return db.get(
-    `SELECT id, filename, mime_type, data, created_at
+    `SELECT id, category, original_name, mime_type, file_size, file_data, created_at
      FROM application_documents WHERE id = ? AND applicant_id = ?`,
     [documentId, applicantId],
   );
@@ -190,10 +306,80 @@ async function deleteApplicationDocument(applicantId, documentId) {
   return result.changes > 0;
 }
 
+async function getProgramSelection(applicantId) {
+  const selection = await db.get(
+    `SELECT program_id, intake, updated_at
+     FROM application_program_selections
+     WHERE applicant_id = ?`,
+    [applicantId],
+  );
+  if (!selection) return undefined;
+  const program = programCatalog.getProgram(selection.program_id);
+  if (!program) return undefined;
+  return { ...program, intake: selection.intake || '', updatedAt: selection.updated_at };
+}
+
+async function saveProgramSelection(applicantId, updates) {
+  const fields = Object.keys(updates || {});
+  if (fields.length !== 2 || !fields.includes('programId') || !fields.includes('intake')) {
+    throw new ApplicationError(400, 'INVALID_PROGRAM_SELECTION', 'Choose one program and one intake to save.', {
+      programId: 'Choose one program from the list.',
+      intake: 'Choose an intake from the list.',
+    });
+  }
+
+  const programId = clean(updates.programId);
+  const program = programCatalog.getProgram(programId);
+  if (!program) {
+    throw new ApplicationError(400, 'INVALID_PROGRAM_SELECTION', 'Choose a program from the list.', {
+      programId: 'Choose a program from the list.',
+    });
+  }
+  const intake = clean(updates.intake);
+  if (!programCatalog.isIntake(intake)) {
+    throw new ApplicationError(400, 'INVALID_PROGRAM_SELECTION', 'Choose an intake from the list.', {
+      intake: 'Choose March or August.',
+    });
+  }
+
+  const profile = await getApplicationProfile(applicantId);
+  const requiredProfileFields = {
+    first_name: 'firstName',
+    last_name: 'lastName',
+    id_number: 'idNumber',
+    country_of_birth: 'countryOfBirth',
+    date_of_birth: 'dateOfBirth',
+    gender: 'gender',
+    physical_address: 'physicalAddress',
+    next_of_kin_name: 'nextOfKinName',
+    next_of_kin_contact: 'nextOfKinContact',
+  };
+  const incompleteFields = Object.entries(requiredProfileFields)
+    .filter(([column]) => !profile || !String(profile[column] || '').trim())
+    .map(([, field]) => field);
+  if (incompleteFields.length) {
+    const errors = Object.fromEntries(incompleteFields.map((field) => [field, 'Complete this field before selecting a program.']));
+    throw new ApplicationError(409, 'APPLICATION_PROFILE_INCOMPLETE', 'Complete your personal information before selecting a program.', errors);
+  }
+
+  await db.run(
+    `INSERT INTO application_program_selections (applicant_id, program_id, intake)
+     VALUES (?, ?, ?)
+     ON CONFLICT(applicant_id) DO UPDATE SET
+       program_id = excluded.program_id,
+       intake = excluded.intake,
+       updated_at = datetime('now')`,
+    [applicantId, program.id, intake],
+  );
+  return getProgramSelection(applicantId);
+}
+
 module.exports = {
   ApplicationError,
   MAX_PHOTO_BYTES,
-  MAX_DOCUMENT_BYTES,
+  MAX_APPLICATION_DOCUMENT_BYTES,
+  APPLICATION_DOCUMENT_CATEGORIES,
+  APPLICATION_DOCUMENT_MIME_TYPES,
   getApplicationProfile,
   saveApplicationProfile,
   savePassportPhoto,
@@ -202,4 +388,8 @@ module.exports = {
   saveApplicationDocument,
   getApplicationDocument,
   deleteApplicationDocument,
+  getPrograms: programCatalog.getPrograms,
+  getIntakes: programCatalog.getIntakes,
+  getProgramSelection,
+  saveProgramSelection,
 };
