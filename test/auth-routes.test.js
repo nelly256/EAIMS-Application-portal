@@ -86,7 +86,7 @@ test('logout destroys the authenticated session and returns the applicant to log
     headers: { Cookie: cookie, 'X-CSRF-Token': logoutCsrf.token },
   });
   assert.equal(logoutResponse.status, 200);
-  assert.equal((await readPayload(logoutResponse)).data.redirect, '/login.html');
+  assert.equal((await readPayload(logoutResponse)).data.redirect, '/');
 
   const protectedResponse = await fetch(`${baseUrl}/api/dashboard`, { headers: { Cookie: cookie } });
   assert.equal(protectedResponse.status, 401);

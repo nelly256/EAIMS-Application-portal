@@ -14,8 +14,8 @@
     <section class="register-visual" aria-label="EAIMS graduate community">
       <img class="register-visual-image" src="/grad2.jpeg" alt="EAIMS graduate celebrating her achievement" />
       <div class="register-visual-copy">
-        <p class="register-kicker">EAST AFRICAN INSTITUTE FOR MANAGEMENT SCIENCE</p>
-        <h1>Your next chapter starts here.</h1>
+        <span class="visual-accent" aria-hidden="true"></span>
+        <h1>Your next chapter <em>starts here.</em></h1>
         <p>Set up your applicant account to prepare for the application process.</p>
       </div>
     </section>
@@ -146,7 +146,7 @@
         </form>
 
           <p class="auth-footer-text">Already have an account? <a class="auth-link" href="/login.html">Sign in</a></p>
-          <p class="register-home-link"><a href="/"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to home</a></p>
+          <p class="register-home-link"><a href="/" data-back><i class="fas fa-arrow-left" aria-hidden="true"></i> Back</a></p>
         </section>
         <footer class="register-footer"><p>&copy; 2026 EAIMS. All Rights Reserved.</p></footer>
       </div>
@@ -155,5 +155,6 @@
 
   <script src="/js/auth-client.js?v=2"></script>
   <script src="/js/register.js"></script>
+  <script src="/js/back-link.js"></script>
 </body>
 </html>
