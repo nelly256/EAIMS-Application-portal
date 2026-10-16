@@ -95,6 +95,9 @@ CREATE TABLE IF NOT EXISTS application_profiles (
   physical_address TEXT NOT NULL DEFAULT '',
   next_of_kin_name TEXT NOT NULL DEFAULT '',
   next_of_kin_contact TEXT NOT NULL DEFAULT '',
+  training_arrangements TEXT NOT NULL DEFAULT '[]',
+  employment_history TEXT NOT NULL DEFAULT '[]',
+  course_reason TEXT NOT NULL DEFAULT '',
   passport_photo BLOB,
   passport_photo_mime TEXT,
   updated_at TEXT DEFAULT (datetime('now')),
@@ -139,6 +142,15 @@ async function migrate() {
   }
   if (!profileColumns.some((column) => column.name === 'next_of_kin_contact')) {
     await exec("ALTER TABLE application_profiles ADD COLUMN next_of_kin_contact TEXT NOT NULL DEFAULT ''");
+  }
+  if (!profileColumns.some((column) => column.name === 'training_arrangements')) {
+    await exec("ALTER TABLE application_profiles ADD COLUMN training_arrangements TEXT NOT NULL DEFAULT '[]'");
+  }
+  if (!profileColumns.some((column) => column.name === 'employment_history')) {
+    await exec("ALTER TABLE application_profiles ADD COLUMN employment_history TEXT NOT NULL DEFAULT '[]'");
+  }
+  if (!profileColumns.some((column) => column.name === 'course_reason')) {
+    await exec("ALTER TABLE application_profiles ADD COLUMN course_reason TEXT NOT NULL DEFAULT ''");
   }
   const programSelectionColumns = await all('PRAGMA table_info(application_program_selections)');
   if (!programSelectionColumns.some((column) => column.name === 'intake')) {

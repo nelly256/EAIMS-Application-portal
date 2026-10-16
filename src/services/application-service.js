@@ -8,6 +8,9 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const MAX_APPLICATION_DOCUMENT_BYTES = 10 * 1024 * 1024;
 const APPLICATION_DOCUMENT_CATEGORIES = ['transcript', 'identity', 'additional'];
 const APPLICATION_DOCUMENT_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const TRAINING_ARRANGEMENTS = ['Day', 'Evening', 'By Modules', 'By Correspondence', 'Weekend'];
+const EMPLOYMENT_HISTORY_LIMIT = 4;
+const COURSE_REASON_MAX_LENGTH = 4000;
 const FIELD_COLUMNS = {
   firstName: 'first_name',
   lastName: 'last_name',
@@ -18,6 +21,9 @@ const FIELD_COLUMNS = {
   physicalAddress: 'physical_address',
   nextOfKinName: 'next_of_kin_name',
   nextOfKinContact: 'next_of_kin_contact',
+  trainingArrangements: 'training_arrangements',
+  employmentHistory: 'employment_history',
+  courseReason: 'course_reason',
 };
 
 class ApplicationError extends Error {
@@ -70,10 +76,79 @@ function validateField(field, value) {
   return 'This field cannot be saved.';
 }
 
+function normalizeProfileField(field, value) {
+  if (field === 'trainingArrangements') {
+    if (!Array.isArray(value) || value.length > TRAINING_ARRANGEMENTS.length
+      || value.some((item) => typeof item !== 'string')) {
+      return { error: 'Choose valid training arrangements.' };
+    }
+    const selected = value.map(clean);
+    if (new Set(selected).size !== selected.length
+      || selected.some((item) => !TRAINING_ARRANGEMENTS.includes(item))) {
+      return { error: 'Choose valid training arrangements.' };
+    }
+    return {
+      value: JSON.stringify(TRAINING_ARRANGEMENTS.filter((item) => selected.includes(item))),
+      error: '',
+    };
+  }
+
+  if (field === 'employmentHistory') {
+    if (!Array.isArray(value) || value.length > EMPLOYMENT_HISTORY_LIMIT) {
+      return { error: `Enter no more than ${EMPLOYMENT_HISTORY_LIMIT} employment records.` };
+    }
+    const records = [];
+    const allowedKeys = ['position', 'organization', 'fromYear', 'toYear'];
+    const currentYear = new Date().getFullYear();
+    const validYear = (year) => /^\d{4}$/.test(year)
+      && Number(year) >= 1900
+      && Number(year) <= currentYear;
+
+    for (const record of value) {
+      if (!record || typeof record !== 'object' || Array.isArray(record)
+        || Object.keys(record).some((key) => !allowedKeys.includes(key))) {
+        return { error: 'Enter valid employment records.' };
+      }
+      const normalized = {};
+      for (const key of allowedKeys) {
+        const entry = record[key] == null ? '' : record[key];
+        if (typeof entry !== 'string') return { error: 'Enter valid employment records.' };
+        normalized[key] = clean(entry);
+      }
+
+      if (Object.values(normalized).every((entry) => !entry)) continue;
+      if (normalized.position.length > 120 || normalized.organization.length > 160) {
+        return { error: 'Employment position or organization is too long.' };
+      }
+      if ((normalized.fromYear && !validYear(normalized.fromYear))
+        || (normalized.toYear && !validYear(normalized.toYear))) {
+        return { error: `Enter employment years between 1900 and ${currentYear}.` };
+      }
+      if (normalized.fromYear && normalized.toYear && Number(normalized.toYear) < Number(normalized.fromYear)) {
+        return { error: 'An employment end year cannot be earlier than its start year.' };
+      }
+      records.push(normalized);
+    }
+    return { value: JSON.stringify(records), error: '' };
+  }
+
+  if (field === 'courseReason') {
+    if (typeof value !== 'string') return { error: 'Enter a valid course reason.' };
+    const normalized = value.replace(/\r\n?/g, '\n').trim();
+    return normalized.length <= COURSE_REASON_MAX_LENGTH
+      ? { value: normalized, error: '' }
+      : { error: `Keep your response to ${COURSE_REASON_MAX_LENGTH} characters or fewer.` };
+  }
+
+  const normalized = clean(value);
+  return { value: normalized, error: validateField(field, normalized) };
+}
+
 async function getApplicationProfile(applicantId) {
   return db.get(
     `SELECT first_name, last_name, id_number, country_of_birth, date_of_birth, gender,
           physical_address, next_of_kin_name, next_of_kin_contact,
+          training_arrangements, employment_history, course_reason,
           passport_photo_mime, updated_at,
             CASE WHEN passport_photo IS NULL THEN 0 ELSE 1 END AS has_passport_photo
      FROM application_profiles WHERE applicant_id = ?`,
@@ -90,9 +165,9 @@ async function saveApplicationProfile(applicantId, updates) {
   const values = {};
   const errors = {};
   for (const field of fields) {
-    values[field] = clean(updates[field]);
-    const error = validateField(field, values[field]);
-    if (error) errors[field] = error;
+    const normalized = normalizeProfileField(field, updates[field]);
+    if (normalized.value !== undefined) values[field] = normalized.value;
+    if (normalized.error) errors[field] = normalized.error;
   }
   if (Object.keys(errors).length) {
     throw new ApplicationError(400, 'VALIDATION_ERROR', 'Check the highlighted fields and try again.', errors);

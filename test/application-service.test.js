@@ -64,6 +64,9 @@ describe('application profile service', () => {
     const profileColumns = await db.all('PRAGMA table_info(application_profiles)');
     assert.ok(profileColumns.some((column) => column.name === 'next_of_kin_name'));
     assert.ok(profileColumns.some((column) => column.name === 'next_of_kin_contact'));
+    assert.ok(profileColumns.some((column) => column.name === 'training_arrangements'));
+    assert.ok(profileColumns.some((column) => column.name === 'employment_history'));
+    assert.ok(profileColumns.some((column) => column.name === 'course_reason'));
     await db.migrate();
   });
 
@@ -117,6 +120,62 @@ describe('application profile service', () => {
       (error) => error instanceof ApplicationError
         && Boolean(error.fields.nextOfKinName)
         && Boolean(error.fields.nextOfKinContact),
+    );
+    assert.equal(await getApplicationProfile(applicantId), undefined);
+  });
+
+  test('saves and retrieves training arrangements, employment history, and course reason', async () => {
+    const updates = {
+      trainingArrangements: ['Weekend', 'Day'],
+      employmentHistory: [
+        {
+          position: 'Program Officer',
+          organization: 'EAIMS',
+          fromYear: '2021',
+          toYear: '',
+        },
+        {
+          position: 'Assistant',
+          organization: 'Community Center',
+          fromYear: '2018',
+          toYear: '2020',
+        },
+        {
+          position: 'Volunteer',
+          organization: '',
+          fromYear: '',
+          toYear: '',
+        },
+      ],
+      courseReason: 'Build skills for my current role.\nPrepare for future leadership.',
+    };
+
+    const saved = await saveApplicationProfile(applicantId, updates);
+    assert.deepEqual(JSON.parse(saved.training_arrangements), ['Day', 'Weekend']);
+    assert.deepEqual(JSON.parse(saved.employment_history), updates.employmentHistory);
+    assert.equal(saved.course_reason, updates.courseReason);
+  });
+
+  test('rejects unsupported arrangements, invalid employment years, and oversized course reasons', async () => {
+    await assert.rejects(
+      saveApplicationProfile(applicantId, { trainingArrangements: ['Day', 'Unknown'] }),
+      (error) => error instanceof ApplicationError && Boolean(error.fields.trainingArrangements),
+    );
+    await assert.rejects(
+      saveApplicationProfile(applicantId, {
+        employmentHistory: [{ position: 'Coordinator', organization: 'EAIMS', fromYear: '2022', toYear: '2021' }],
+      }),
+      (error) => error instanceof ApplicationError && Boolean(error.fields.employmentHistory),
+    );
+    await assert.rejects(
+      saveApplicationProfile(applicantId, {
+        employmentHistory: Array.from({ length: 5 }, () => ({})),
+      }),
+      (error) => error instanceof ApplicationError && Boolean(error.fields.employmentHistory),
+    );
+    await assert.rejects(
+      saveApplicationProfile(applicantId, { courseReason: 'x'.repeat(4001) }),
+      (error) => error instanceof ApplicationError && Boolean(error.fields.courseReason),
     );
     assert.equal(await getApplicationProfile(applicantId), undefined);
   });

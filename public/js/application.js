@@ -9,6 +9,8 @@
   const successMessage = document.getElementById('applicationSuccess');
   const saveState = document.getElementById('saveState');
   const countrySelect = document.getElementById('countryOfBirth');
+  const trainingArrangementsGroup = document.getElementById('trainingArrangementsGroup');
+  const employmentHistoryRows = document.getElementById('employmentHistoryRows');
   const photoInput = document.getElementById('passportPhoto');
   const photoDropzone = document.querySelector('.photo-dropzone');
   const photoPreview = document.getElementById('passportPhotoPreview');
@@ -227,6 +229,32 @@
     }
     const input = form.elements.namedItem(name);
     if (input && input.type !== 'file') input.value = value || '';
+  }
+
+  function getProfileFieldValue(field) {
+    if (field === 'trainingArrangements') {
+      return Array.from(form.querySelectorAll('input[name="trainingArrangements"]:checked'), (input) => input.value);
+    }
+    if (field === 'employmentHistory') {
+      return Array.from(employmentHistoryRows.querySelectorAll('.employment-history-row'), (row) => {
+        const record = {};
+        row.querySelectorAll('[data-employment-field]').forEach((input) => {
+          record[input.dataset.employmentField] = input.value.trim();
+        });
+        return record;
+      });
+    }
+    if (field === 'gender') return form.querySelector('input[name="gender"]:checked')?.value || '';
+    return form.elements.namedItem(field)?.value ?? '';
+  }
+
+  function getProfileFieldControl(field) {
+    if (field === 'trainingArrangements') return trainingArrangementsGroup;
+    if (field === 'employmentHistory') return employmentHistoryRows;
+    if (field === 'gender') {
+      return form.querySelector('input[name="gender"]:checked') || form.querySelector('input[name="gender"]');
+    }
+    return form.elements.namedItem(field);
   }
 
   function updateProfileStatus() {
@@ -484,6 +512,18 @@
       ]) {
         setFieldValue(field, profile[field]);
       }
+      const selectedArrangements = Array.isArray(profile.trainingArrangements) ? profile.trainingArrangements : [];
+      form.querySelectorAll('input[name="trainingArrangements"]').forEach((input) => {
+        input.checked = selectedArrangements.includes(input.value);
+      });
+      const employmentHistory = Array.isArray(profile.employmentHistory) ? profile.employmentHistory : [];
+      employmentHistoryRows.querySelectorAll('.employment-history-row').forEach((row, index) => {
+        const record = employmentHistory[index] || {};
+        row.querySelectorAll('[data-employment-field]').forEach((input) => {
+          input.value = record[input.dataset.employmentField] || '';
+        });
+      });
+      setFieldValue('courseReason', profile.courseReason);
       hasPassportPhoto = Boolean(profile.hasPassportPhoto);
       if (hasPassportPhoto) showProfilePhoto(`/api/application/profile/photo?updated=${Date.now()}`);
       applicationDocuments = Array.isArray(profile.documents) ? profile.documents : [];
@@ -516,11 +556,9 @@
   }
 
   async function saveField(field) {
-    const input = field === 'gender'
-      ? form.querySelector('input[name="gender"]:checked')
-      : form.elements.namedItem(field);
+    const input = getProfileFieldControl(field);
     if (!input) return;
-    const value = field === 'gender' ? input.value : input.value.trim();
+    const value = getProfileFieldValue(field);
     const errorElement = form.querySelector(`[data-error-for="${CSS.escape(field)}"]`);
     if (errorElement) {
       errorElement.hidden = true;
@@ -595,6 +633,16 @@
   form.querySelectorAll('input[name="gender"]').forEach((input) => {
     input.addEventListener('change', () => scheduleSave('gender', true));
   });
+  form.querySelectorAll('input[name="trainingArrangements"]').forEach((input) => {
+    input.addEventListener('change', () => scheduleSave('trainingArrangements', true));
+  });
+  employmentHistoryRows.querySelectorAll('[data-employment-field]').forEach((input) => {
+    input.addEventListener('input', () => scheduleSave('employmentHistory'));
+    input.addEventListener('blur', () => scheduleSave('employmentHistory', true));
+  });
+  const courseReasonInput = form.elements.namedItem('courseReason');
+  courseReasonInput.addEventListener('input', () => scheduleSave('courseReason'));
+  courseReasonInput.addEventListener('blur', () => scheduleSave('courseReason', true));
 
   async function uploadPhoto(file) {
     clearApplicationError();
