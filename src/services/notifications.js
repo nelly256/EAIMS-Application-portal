@@ -15,27 +15,7 @@ function escapeHtml(value) {
 }
 
 function getTransporter() {
-  if (!config.smtp.host) {
-    if (config.nodeEnv === 'development') {
-      return nodemailer.createTransport({
-        name: 'eaims-dev',
-        send(mail, callback) {
-          const data = mail.data || {};
-          const logEntry = {
-            type: 'email',
-            from: data.from,
-            to: data.to,
-            subject: data.subject,
-            text: data.text,
-            html: data.html,
-          };
-          console.log('[DEV EMAIL]', JSON.stringify(logEntry, null, 2));
-          callback(null, { messageId: `dev-${Date.now()}` });
-        },
-      });
-    }
-    return null;
-  }
+  if (!config.smtp.host) return null;
   if (!transporter) {
     transporter = nodemailer.createTransport({
       host: config.smtp.host,
@@ -54,7 +34,7 @@ async function sendEmail({ to, subject, text, html }) {
     const info = await mailer.sendMail({ from: config.smtp.from, to, subject, text, html });
     return { sent: true, messageId: info.messageId };
   } catch (error) {
-    return { sent: false, reason: 'SMTP_ERROR', error: error.message };
+    return { sent: false, reason: 'SMTP_ERROR' };
   }
 }
 
@@ -105,29 +85,18 @@ async function sendSms({ to, message }) {
     }), config.sms.timeoutMs);
   } catch (error) {
     const reason = error.name === 'AbortError' || error.message === 'TIMEOUT' ? 'SMS_TIMEOUT' : 'SMS_NETWORK_ERROR';
-    return { sent: false, reason, error: error.message };
+    return { sent: false, reason };
   }
   if (response.status >= 200 && response.status < 300) {
     return { sent: true, status: response.status };
   }
-  let errorDetail = '';
-  try {
-    const responseBody = await response.text();
-    errorDetail = responseBody;
-  } catch (bodyError) {
-    errorDetail = `Unable to read error response: ${bodyError.message}`;
-  }
   if (config.nodeEnv === 'development') {
-    console.error('[SMS DEBUG]', {
+    console.error('[SMS DEBUG] Provider request failed.', {
       provider: config.sms.provider,
-      apiUrl: config.sms.apiUrl,
       status: response.status,
-      responseBody: errorDetail,
-      to,
-      username: config.sms.username,
     });
   }
-  return { sent: false, reason: 'SMS_API_ERROR', status: response.status, error: errorDetail };
+  return { sent: false, reason: 'SMS_API_ERROR', status: response.status };
 }
 
 async function sendVerification(applicant, code) {
@@ -196,8 +165,6 @@ async function testSmtpConnection(testEmail) {
   } catch (error) {
     results.smtpConnection = 'SMTP connection failed';
     results.smtpAuth = 'SMTP authentication failed';
-    results.error = error.message;
-    if (process.env.NODE_ENV === 'development') console.error('[SMTP TEST]', error);
     return results;
   }
   if (!testEmail) {
@@ -215,8 +182,6 @@ async function testSmtpConnection(testEmail) {
     results.messageId = info.messageId;
   } catch (error) {
     results.smtpSend = 'Test email failed';
-    results.error = error.message;
-    if (process.env.NODE_ENV === 'development') console.error('[SMTP TEST]', error);
   }
   return results;
 }

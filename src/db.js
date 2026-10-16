@@ -31,6 +31,7 @@ const exec = (sql) => new Promise((resolve, reject) => {
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS applicants (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  application_number TEXT,
   surname TEXT NOT NULL,
   other_names TEXT NOT NULL,
   email TEXT,
@@ -125,6 +126,25 @@ CREATE TABLE IF NOT EXISTS application_program_selections (
   FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS application_submissions (
+  applicant_id INTEGER PRIMARY KEY,
+  status TEXT NOT NULL CHECK (status IN ('submitted', 'in_review', 'approved', 'admitted')),
+  submitted_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS application_status_notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  applicant_id INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('submitted', 'in_review', 'approved', 'admitted')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  read_at TEXT,
+  FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_application_status_notifications_applicant
+ON application_status_notifications(applicant_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS sessions (
   sid TEXT PRIMARY KEY,
   data TEXT NOT NULL,
@@ -136,6 +156,56 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 
 async function migrate() {
   await exec(SCHEMA);
+  const applicantColumns = await all('PRAGMA table_info(applicants)');
+  if (!applicantColumns.some((column) => column.name === 'application_number')) {
+    await exec('ALTER TABLE applicants ADD COLUMN application_number TEXT');
+  }
+  await exec(`
+    UPDATE applicants
+    SET application_number = 'EAIMS-'
+      || COALESCE(strftime('%Y', created_at), strftime('%Y', 'now'))
+      || '-'
+      || printf('%06d', id)
+    WHERE application_number IS NULL OR trim(application_number) = ''
+  `);
+  await exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_applicants_application_number
+    ON applicants(application_number)
+  `);
+
+  const submissionSchema = await get(
+    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'application_submissions'",
+  );
+  if (submissionSchema && submissionSchema.sql.includes("CHECK (status = 'submitted')")) {
+    await transaction(async () => {
+      await run(`
+        CREATE TABLE application_submissions_migrated (
+          applicant_id INTEGER PRIMARY KEY,
+          status TEXT NOT NULL CHECK (status IN ('submitted', 'in_review', 'approved', 'admitted')),
+          submitted_at TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+        )
+      `);
+      await run(`
+        INSERT INTO application_submissions_migrated (applicant_id, status, submitted_at)
+        SELECT applicant_id, status, submitted_at FROM application_submissions
+      `);
+      await run('DROP TABLE application_submissions');
+      await run('ALTER TABLE application_submissions_migrated RENAME TO application_submissions');
+    });
+  }
+  await exec(`
+    INSERT INTO application_status_notifications (applicant_id, status, created_at)
+    SELECT submission.applicant_id, submission.status, submission.submitted_at
+    FROM application_submissions AS submission
+    WHERE submission.status IN ('submitted', 'admitted')
+      AND NOT EXISTS (
+      SELECT 1 FROM application_status_notifications AS notification
+      WHERE notification.applicant_id = submission.applicant_id
+        AND notification.status = submission.status
+    )
+  `);
+
   const profileColumns = await all('PRAGMA table_info(application_profiles)');
   if (!profileColumns.some((column) => column.name === 'next_of_kin_name')) {
     await exec("ALTER TABLE application_profiles ADD COLUMN next_of_kin_name TEXT NOT NULL DEFAULT ''");

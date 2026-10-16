@@ -77,7 +77,7 @@ after(async () => {
 test('application profile API saves, validates, and returns the new study details', async () => {
   const csrf = await login();
   const details = {
-    trainingArrangements: ['Day', 'By Modules', 'Weekend'],
+    trainingArrangements: ['Weekday', 'By Correspondence', 'Weekend'],
     employmentHistory: [
       { position: 'Program Officer', organization: 'EAIMS', fromYear: '2022', toYear: '' },
     ],
@@ -99,7 +99,7 @@ test('application profile API saves, validates, and returns the new study detail
   });
   assert.equal(profileResponse.status, 200);
   const profile = (await readPayload(profileResponse)).data.profile;
-  assert.deepEqual(profile.trainingArrangements, ['Day', 'By Modules', 'Weekend']);
+  assert.deepEqual(profile.trainingArrangements, ['Weekday', 'Weekend', 'By Correspondence']);
   assert.deepEqual(profile.employmentHistory, details.employmentHistory);
   assert.equal(profile.courseReason, details.courseReason);
 
@@ -115,4 +115,36 @@ test('application profile API saves, validates, and returns the new study detail
   assert.equal(invalidResponse.status, 400);
   const invalidPayload = await readPayload(invalidResponse);
   assert.ok(invalidPayload.error.fields.trainingArrangements);
+
+  const submissionResponse = await fetch(`${baseUrl}/api/application/submit`, {
+    method: 'POST',
+    headers: {
+      Cookie: csrf.cookie,
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrf.token,
+    },
+    body: JSON.stringify({}),
+  });
+  assert.equal(submissionResponse.status, 400);
+  const submissionPayload = await readPayload(submissionResponse);
+  assert.equal(submissionPayload.error.code, 'APPLICATION_INCOMPLETE');
+  assert.ok(submissionPayload.error.fields.programSelection);
+
+  const dashboardResponse = await fetch(`${baseUrl}/api/dashboard`, {
+    headers: { Cookie: csrf.cookie },
+  });
+  assert.equal(dashboardResponse.status, 200);
+  assert.deepEqual((await readPayload(dashboardResponse)).data.notifications, { items: [], unreadCount: 0 });
+
+  const markReadResponse = await fetch(`${baseUrl}/api/application/notifications/read`, {
+    method: 'POST',
+    headers: {
+      Cookie: csrf.cookie,
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrf.token,
+    },
+    body: JSON.stringify({}),
+  });
+  assert.equal(markReadResponse.status, 200);
+  assert.deepEqual((await readPayload(markReadResponse)).data, { updatedCount: 0 });
 });

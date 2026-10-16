@@ -70,11 +70,7 @@ app.use('/api/auth', authRoutes);
 
 if (config.nodeEnv === 'development') {
   app.post('/api/dev/sms', (req, res) => {
-    console.log('[DEV SMS]', JSON.stringify({
-      to: req.body.to,
-      message: req.body.message,
-      from: req.body.from,
-    }, null, 2));
+    console.log('[DEV SMS] Message accepted by the development stub.');
     res.status(200).json({ success: true, messageId: `dev-sms-${Date.now()}` });
   });
 
@@ -92,17 +88,20 @@ if (config.nodeEnv === 'development') {
 app.get('/api/dashboard', requireAuth, requireVerified, async (req, res, next) => {
   const { publicApplicant } = require('./src/security');
   try {
-    const [profile, programSelection, documents] = await Promise.all([
+    const [profile, programSelection, documents, application, notifications] = await Promise.all([
       applicationService.getApplicationProfile(req.applicant.id),
       applicationService.getProgramSelection(req.applicant.id),
       applicationService.listApplicationDocuments(req.applicant.id),
+      applicationService.getApplicationSubmission(req.applicant.id),
+      applicationService.getApplicationStatusNotifications(req.applicant.id),
     ]);
     const savedProfile = profile || {};
     return res.json({
       ok: true,
       data: {
         applicant: publicApplicant(req.applicant),
-        application: null,
+        application: application || null,
+        notifications,
         programSelection: programSelection || null,
         applicationProfile: {
           firstName: savedProfile ? savedProfile.first_name : req.applicant.other_names || '',
@@ -127,10 +126,12 @@ app.get('/api/dashboard', requireAuth, requireVerified, async (req, res, next) =
 
 app.get('/api/application/profile', requireAuth, requireVerified, async (req, res, next) => {
   try {
-    const [savedProfile, programSelection, documents] = await Promise.all([
+    const [savedProfile, programSelection, documents, submission, notifications] = await Promise.all([
       applicationService.getApplicationProfile(req.applicant.id),
       applicationService.getProgramSelection(req.applicant.id),
       applicationService.listApplicationDocuments(req.applicant.id),
+      applicationService.getApplicationSubmission(req.applicant.id),
+      applicationService.getApplicationStatusNotifications(req.applicant.id),
     ]);
     const profile = savedProfile || {};
     return res.json({
@@ -140,15 +141,18 @@ app.get('/api/application/profile', requireAuth, requireVerified, async (req, re
         programs: applicationService.getPrograms(),
         intakes: applicationService.getIntakes(),
         programSelection: programSelection || null,
+        submission: submission || null,
+        notifications,
         profile: {
-          firstName: savedProfile ? profile.first_name : req.applicant.other_names || '',
-          lastName: savedProfile ? profile.last_name : req.applicant.surname || '',
+          applicationNumber: req.applicant.application_number || '',
+          firstName: profile.first_name || req.applicant.other_names || '',
+          lastName: profile.last_name || req.applicant.surname || '',
           idNumber: profile.id_number || '',
           email: req.applicant.email || '',
           phone: req.applicant.phone || '',
           countryOfBirth: profile.country_of_birth || '',
-          dateOfBirth: savedProfile ? profile.date_of_birth : req.applicant.date_of_birth || '',
-          gender: savedProfile ? profile.gender : req.applicant.sex || '',
+          dateOfBirth: profile.date_of_birth || req.applicant.date_of_birth || '',
+          gender: profile.gender || req.applicant.sex || '',
           physicalAddress: profile.physical_address || '',
           nextOfKinName: profile.next_of_kin_name || '',
           nextOfKinContact: profile.next_of_kin_contact || '',
@@ -162,6 +166,24 @@ app.get('/api/application/profile', requireAuth, requireVerified, async (req, re
         },
       },
     });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post('/api/application/submit', requireAuth, requireVerified, csrfProtection, async (req, res, next) => {
+  try {
+    const submission = await applicationService.submitApplication(req.applicant.id);
+    return res.status(201).json({ ok: true, data: { submission } });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post('/api/application/notifications/read', requireAuth, requireVerified, csrfProtection, async (req, res, next) => {
+  try {
+    const result = await applicationService.markApplicationStatusNotificationsRead(req.applicant.id);
+    return res.json({ ok: true, data: result });
   } catch (error) {
     return next(error);
   }

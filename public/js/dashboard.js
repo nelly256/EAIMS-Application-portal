@@ -4,6 +4,62 @@
   const logoutButton = document.getElementById('logoutButton');
   const dashboardContent = document.getElementById('dashboardContent');
   const dashboardError = document.getElementById('dashboardError');
+  const notificationBell = document.getElementById('notificationBell');
+  const notificationsPanel = document.getElementById('notificationsPanel');
+  const notificationCount = document.getElementById('notificationCount');
+  const notificationMessages = {
+    submitted: ['Application submitted successfully', 'Your application has been submitted successfully.'],
+    admitted: ['You have been admitted!', 'Congratulations! Your admission has been confirmed.'],
+  };
+  const applicationStatuses = ['submitted', 'admitted'];
+
+  function statusLabel(status) {
+    if (status === 'admitted') return 'Admitted';
+    return status ? 'Submitted' : 'In progress';
+  }
+
+  function renderApplicationProgress(status) {
+    const journeyStatus = status ? status === 'admitted' ? 'admitted' : 'submitted' : null;
+    const currentIndex = applicationStatuses.indexOf(journeyStatus);
+    document.querySelectorAll('.application-status-step').forEach((step, index) => {
+      step.classList.remove('is-complete', 'is-current', 'is-upcoming');
+      const state = currentIndex < 0 || index > currentIndex
+        ? 'is-upcoming'
+        : index === currentIndex ? 'is-current' : 'is-complete';
+      step.classList.add(state);
+      if (state === 'is-current') step.setAttribute('aria-current', 'step');
+      else step.removeAttribute('aria-current');
+    });
+  }
+
+  function renderNotifications(notifications) {
+    const items = notifications && Array.isArray(notifications.items) ? notifications.items : [];
+    const unreadCount = Number(notifications && notifications.unreadCount) || 0;
+    const notificationsList = document.getElementById('notificationsList');
+    notificationsList.replaceChildren();
+    items.forEach((notification) => {
+      const message = notificationMessages[notification.status];
+      if (!message) return;
+      const item = document.createElement('li');
+      item.className = `notification-item${notification.readAt ? '' : ' is-unread'}`;
+      const title = document.createElement('strong');
+      title.textContent = message[0];
+      const description = document.createElement('span');
+      description.textContent = message[1];
+      const date = document.createElement('time');
+      date.dateTime = notification.createdAt;
+      const parsedDate = new Date(notification.createdAt);
+      date.textContent = Number.isNaN(parsedDate.getTime()) ? '' : parsedDate.toLocaleString();
+      item.append(title, description, date);
+      notificationsList.appendChild(item);
+    });
+    document.getElementById('notificationsEmptyState').hidden = notificationsList.childElementCount > 0;
+    notificationCount.textContent = String(unreadCount);
+    notificationCount.hidden = unreadCount === 0;
+    notificationBell.setAttribute('aria-label', unreadCount
+      ? `Notifications, ${unreadCount} unread`
+      : 'Notifications');
+  }
 
   function displayValue(value) {
     const text = String(value || '').trim();
@@ -19,6 +75,10 @@
       const fullName = profileFullName || [applicant.otherNames, applicant.surname].filter(Boolean).join(' ') || 'Applicant';
       const firstName = applicationProfile.firstName || applicant.otherNames || applicant.surname || 'Applicant';
       const programSelection = payload.data.programSelection;
+      const submission = payload.data.application;
+      const applicationStatus = submission && submission.status;
+      const isSubmitted = Boolean(submission);
+      const currentStatusLabel = statusLabel(applicationStatus);
       const documents = Array.isArray(payload.data.documents) ? payload.data.documents : [];
       const hasCompleteProgramChoice = Boolean(programSelection && programSelection.intake);
       const hasCompleteDocuments = Boolean(
@@ -50,6 +110,11 @@
       const profileStatus = profilePercent === 100
         ? 'Personal information complete'
         : completedFields > 0 ? 'Personal information in progress' : 'Not started';
+      const applicationStateClass = isSubmitted
+        ? applicationStatus === 'admitted' ? 'is-complete' : 'is-in-progress'
+        : hasCompleteProgramChoice || profilePercent === 100
+          ? 'is-complete'
+          : completedFields ? 'is-in-progress' : 'is-not-started';
 
       document.getElementById('headerApplicantName').textContent = fullName;
       document.getElementById('applicantInitials').textContent = initials;
@@ -62,11 +127,18 @@
       document.getElementById('applicantDob').textContent = dateOfBirth
         ? new Date(`${dateOfBirth}T00:00:00`).toLocaleDateString()
         : 'Not provided';
-      document.getElementById('applicationStatusText').textContent = programSelection
+      document.getElementById('applicantApplicationNumber').textContent = displayValue(applicant.applicationNumber);
+      document.getElementById('applicationStatusText').textContent = isSubmitted
+        ? applicationStatus === 'admitted'
+          ? 'You have been admitted'
+          : 'Application submitted successfully'
+        : programSelection
         ? hasCompleteProgramChoice ? 'Program and intake selected' : 'Choose an intake to finish program selection'
         : profileStatus;
-      document.getElementById('applicationStateLabel').className = `application-state ${hasCompleteProgramChoice || profilePercent === 100 ? 'is-complete' : completedFields ? 'is-in-progress' : 'is-not-started'}`;
-      document.getElementById('applicationStateLabel').lastChild.textContent = programSelection
+      document.getElementById('applicationStateLabel').className = `application-state ${applicationStateClass}`;
+      document.getElementById('applicationStateLabel').lastChild.textContent = isSubmitted
+        ? currentStatusLabel
+        : programSelection
         ? hasCompleteProgramChoice ? 'Program selected' : 'Intake needed'
         : profilePercent === 100 ? 'Complete' : completedFields ? 'In progress' : 'Not started';
       document.getElementById('profileProgressCount').textContent = `${completedFields} of ${profileFields.length} details complete`;
@@ -76,6 +148,7 @@
         : 'Complete your personal information and upload a passport photo.';
       document.getElementById('profileProgressBar').style.width = `${profilePercent}%`;
       document.getElementById('profileProgress').setAttribute('aria-valuenow', String(profilePercent));
+      renderApplicationProgress(applicationStatus);
       const personalInfoComplete = profilePercent === 100;
       document.getElementById('personalInfoChecklist').classList.toggle('is-complete', personalInfoComplete);
       document.getElementById('personalInfoChecklistStatus').textContent = profilePercent === 100 ? 'Complete' : completedFields ? 'In progress' : 'Upcoming';
@@ -108,14 +181,20 @@
         item.append(link, category);
         recentDocumentsList.appendChild(item);
       });
-      document.getElementById('nextStepDescription').textContent = programSelection
+      document.getElementById('nextStepDescription').textContent = isSubmitted
+        ? applicationStatus === 'admitted'
+          ? 'Congratulations! You have been admitted.'
+          : `Your application ${applicant.applicationNumber ? `(${applicant.applicationNumber}) ` : ''}was submitted successfully${submission.submittedAt ? ` on ${new Date(submission.submittedAt).toLocaleString()}` : ''}.`
+        : programSelection
         ? hasCompleteProgramChoice
           ? `Your selected program is ${programSelection.name} for the ${programSelection.intake} intake. You can review or change your choice here.`
           : `You selected ${programSelection.name}. Choose an intake to complete your choice.`
         : 'Complete your personal information to choose a program, then upload your required documents.';
-      document.getElementById('continueApplicationLink').firstChild.textContent = hasCompleteProgramChoice
-        ? 'Review Program Choice '
-        : 'Continue to My Application ';
+      const continueApplicationLink = document.getElementById('continueApplicationLink');
+      continueApplicationLink.href = isSubmitted ? '/track-application' : '/my-application';
+      continueApplicationLink.firstChild.textContent = isSubmitted
+        ? 'Track My Application '
+        : hasCompleteProgramChoice ? 'Review Program Choice ' : 'Continue to My Application ';
       document.getElementById('programSelectionChecklist').classList.toggle('is-complete', hasCompleteProgramChoice);
       document.getElementById('programSelectionChecklistDescription').textContent = programSelection
         ? hasCompleteProgramChoice
@@ -125,6 +204,12 @@
       document.getElementById('programSelectionChecklistStatus').textContent = hasCompleteProgramChoice
         ? 'Selected'
         : programSelection ? 'Intake needed' : 'Upcoming';
+      document.getElementById('submissionChecklist').classList.toggle('is-complete', isSubmitted);
+      document.getElementById('submissionChecklistDescription').textContent = isSubmitted
+        ? `${currentStatusLabel}${submission.submittedAt ? ` · Submitted on ${new Date(submission.submittedAt).toLocaleDateString()}` : ''} · ${applicant.applicationNumber || 'Application received'}`
+        : 'Submit when all application steps are complete';
+      document.getElementById('submissionChecklistStatus').textContent = isSubmitted ? currentStatusLabel : 'Upcoming';
+      renderNotifications(payload.data.notifications);
       dashboardContent.hidden = false;
     } catch (error) {
       dashboardContent.hidden = true;
@@ -148,6 +233,43 @@
       window.EaimsAuth.showFormMessage(dashboardError, error.message);
       logoutButton.disabled = false;
       logoutButton.removeAttribute('aria-busy');
+    }
+  });
+
+  notificationBell?.addEventListener('click', async () => {
+    const opening = notificationsPanel.hidden;
+    notificationsPanel.hidden = !opening;
+    notificationBell.setAttribute('aria-expanded', String(opening));
+    if (!opening || Number(notificationCount.textContent) === 0) return;
+    notificationBell.disabled = true;
+    try {
+      await window.EaimsAuth.request('/api/application/notifications/read', { method: 'POST' });
+      const currentItems = Array.from(document.querySelectorAll('.notification-item'));
+      currentItems.forEach((item) => item.classList.remove('is-unread'));
+      notificationCount.textContent = '0';
+      notificationCount.hidden = true;
+      notificationBell.setAttribute('aria-label', 'Notifications');
+    } catch (error) {
+      window.EaimsAuth.showFormMessage(dashboardError, error.message);
+    } finally {
+      notificationBell.disabled = false;
+    }
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!notificationsPanel.hidden
+      && !notificationsPanel.contains(event.target)
+      && !notificationBell.contains(event.target)) {
+      notificationsPanel.hidden = true;
+      notificationBell.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  notificationBell?.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      notificationsPanel.hidden = true;
+      notificationBell.setAttribute('aria-expanded', 'false');
+      notificationBell.focus();
     }
   });
 

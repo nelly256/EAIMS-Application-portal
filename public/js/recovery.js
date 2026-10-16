@@ -27,10 +27,7 @@
         method: 'POST',
         body: JSON.stringify({ identifier }),
       });
-      const message = payload.data.developmentResetUrl
-        ? `${payload.data.message} Development reset link: ${payload.data.developmentResetUrl}`
-        : payload.data.message;
-      window.EaimsAuth.showFormMessage(formSuccess, message);
+      window.EaimsAuth.showFormMessage(formSuccess, payload.data.message, 'success');
       form.reset();
     } catch (error) {
       window.EaimsAuth.showFieldErrors(form, error.fields);

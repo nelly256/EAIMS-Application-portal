@@ -7,10 +7,12 @@
   const logoutButton = document.getElementById('logoutButton');
   const errorMessage = document.getElementById('applicationError');
   const successMessage = document.getElementById('applicationSuccess');
+  const submissionStatusMessage = document.getElementById('applicationSubmissionStatus');
+  const applicationReference = document.getElementById('applicationReference');
   const saveState = document.getElementById('saveState');
   const countrySelect = document.getElementById('countryOfBirth');
   const trainingArrangementsGroup = document.getElementById('trainingArrangementsGroup');
-  const employmentHistoryRows = document.getElementById('employmentHistoryRows');
+  const trainingArrangementInputs = Array.from(form.querySelectorAll('input[name="trainingArrangements"]'));
   const photoInput = document.getElementById('passportPhoto');
   const photoDropzone = document.querySelector('.photo-dropzone');
   const photoPreview = document.getElementById('passportPhotoPreview');
@@ -54,9 +56,13 @@
   const saveProgramButton = document.getElementById('saveProgramButton');
   const continueDocumentsButton = document.getElementById('continueDocumentsButton');
   const backToProgramButton = document.getElementById('backToProgramButton');
+  const submitApplicationButton = document.getElementById('submitApplicationButton');
   const stepper = document.getElementById('progress');
   const progressSteps = Array.from(document.querySelectorAll('#progress li'));
   const saveTimers = new Map();
+  const saveChains = new Map();
+  const queuedSaveFields = new Set();
+  const dirtyFields = new Set();
   let pendingSaves = 0;
   let hasPassportPhoto = false;
   let applicationDocuments = [];
@@ -66,6 +72,8 @@
   let activeProgramLevel = '';
   let pendingProgramId = '';
   let pendingIntake = '';
+  let submissionLocked = false;
+  let pendingUploads = 0;
   let currentStep = 1;
   const visitedSteps = new Set([1]);
 
@@ -148,53 +156,60 @@
     errorElement.hidden = true;
     errorElement.textContent = '';
     input.disabled = true;
+    pendingUploads += 1;
+    updateApplicationProgress();
     const failures = [];
-    for (const file of files) {
-      if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
-        failures.push(`${file.name}: upload a PDF, JPEG, or PNG file.`);
-        continue;
-      }
-      if (file.size === 0 || file.size > 10 * 1024 * 1024) {
-        failures.push(`${file.name}: choose a non-empty file smaller than 10 MB.`);
-        continue;
-      }
+    try {
+      for (const file of files) {
+        if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
+          failures.push(`${file.name}: upload a PDF, JPEG, or PNG file.`);
+          continue;
+        }
+        if (file.size === 0 || file.size > 10 * 1024 * 1024) {
+          failures.push(`${file.name}: choose a non-empty file smaller than 10 MB.`);
+          continue;
+        }
 
-      setSaveState(`Uploading ${file.name}...`, 'saving');
-      try {
-        const response = await fetch(`/api/application/documents/${category}`, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': file.type,
-            'X-File-Name': encodeURIComponent(file.name),
-            'X-CSRF-Token': await window.EaimsAuth.getCsrfToken(),
-          },
-          body: file,
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          const error = new Error(payload.error?.message || 'The document could not be uploaded.');
-          error.status = response.status;
-          error.fields = payload.error?.fields || {};
-          throw error;
+        setSaveState(`Uploading ${file.name}...`, 'saving');
+        try {
+          const response = await fetch(`/api/application/documents/${category}`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': file.type,
+              'X-File-Name': encodeURIComponent(file.name),
+              'X-CSRF-Token': await window.EaimsAuth.getCsrfToken(),
+            },
+            body: file,
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const error = new Error(payload.error?.message || 'The document could not be uploaded.');
+            error.status = response.status;
+            error.fields = payload.error?.fields || {};
+            throw error;
+          }
+          if (category === 'identity') {
+            applicationDocuments = applicationDocuments.filter((document) => document.category !== category);
+          }
+          applicationDocuments.push(payload.data.document);
+          renderApplicationDocuments();
+          updateApplicationProgress();
+        } catch (error) {
+          if (error.status === 401 || error.status === 403) {
+            window.location.assign('/login.html');
+            return;
+          }
+          failures.push(`${file.name}: ${error.fields?.file || error.message}`);
         }
-        if (category === 'identity') {
-          applicationDocuments = applicationDocuments.filter((document) => document.category !== category);
-        }
-        applicationDocuments.push(payload.data.document);
-        renderApplicationDocuments();
-        updateApplicationProgress();
-      } catch (error) {
-        if (error.status === 401 || error.status === 403) {
-          window.location.assign('/login.html');
-          return;
-        }
-        failures.push(`${file.name}: ${error.fields?.file || error.message}`);
       }
+    } finally {
+      pendingUploads = Math.max(0, pendingUploads - 1);
+      input.disabled = false;
+      input.value = '';
+      updateApplicationProgress();
     }
-    input.disabled = false;
-    input.value = '';
     errorElement.textContent = failures.join(' ');
     errorElement.hidden = failures.length === 0;
     setSaveState(failures.length ? 'Some documents could not be saved' : 'All changes saved', failures.length ? 'error' : 'saved');
@@ -235,22 +250,12 @@
     if (field === 'trainingArrangements') {
       return Array.from(form.querySelectorAll('input[name="trainingArrangements"]:checked'), (input) => input.value);
     }
-    if (field === 'employmentHistory') {
-      return Array.from(employmentHistoryRows.querySelectorAll('.employment-history-row'), (row) => {
-        const record = {};
-        row.querySelectorAll('[data-employment-field]').forEach((input) => {
-          record[input.dataset.employmentField] = input.value.trim();
-        });
-        return record;
-      });
-    }
     if (field === 'gender') return form.querySelector('input[name="gender"]:checked')?.value || '';
     return form.elements.namedItem(field)?.value ?? '';
   }
 
   function getProfileFieldControl(field) {
     if (field === 'trainingArrangements') return trainingArrangementsGroup;
-    if (field === 'employmentHistory') return employmentHistoryRows;
     if (field === 'gender') {
       return form.querySelector('input[name="gender"]:checked') || form.querySelector('input[name="gender"]');
     }
@@ -297,6 +302,55 @@
       && applicationDocuments.some((document) => document.category === 'identity');
   }
 
+  function hasTrainingArrangement() {
+    return form.querySelectorAll('input[name="trainingArrangements"]:checked').length > 0;
+  }
+
+  function getSubmissionBlockers() {
+    const missing = [];
+    if (!hasCompletePersonalDetails()) missing.push('complete all required personal details');
+    if (!hasTrainingArrangement()) missing.push('choose at least one training arrangement');
+    if (!isCurrentProgramChoiceSaved()) missing.push('save a program and intake');
+    missing.push(...missingRequiredDocuments().map((item) => `upload ${item}`));
+    if (saveState.dataset.state === 'error') missing.push('resolve the save error');
+    return missing;
+  }
+
+  function setSubmissionLock(isLocked) {
+    submissionLocked = isLocked;
+    if (!isLocked) return;
+
+    const navigationIds = new Set([
+      'continueProgramButton',
+      'backToPersonalButton',
+      'continueDocumentsButton',
+      'backToProgramButton',
+    ]);
+    form.querySelectorAll('input, select, textarea, button').forEach((control) => {
+      if (control.classList.contains('step-navigation-button') || navigationIds.has(control.id)) return;
+      control.disabled = true;
+    });
+    submitApplicationButton.hidden = true;
+    submitApplicationButton.disabled = true;
+  }
+
+  function renderSubmissionState(submission, applicationNumber) {
+    const number = applicationNumber || submission?.applicationNumber || '';
+    if (applicationReference && number) applicationReference.textContent = `Application No. ${number}`;
+    if (!submission) {
+      submissionStatusMessage.hidden = true;
+      setSubmissionLock(false);
+      return;
+    }
+
+    const submittedDate = submission.submittedAt
+      ? new Date(submission.submittedAt).toLocaleString()
+      : '';
+    submissionStatusMessage.textContent = `Application ${number ? `${number} ` : ''}submitted successfully${submittedDate ? ` on ${submittedDate}` : ''}. Your application is now read-only.`;
+    submissionStatusMessage.hidden = false;
+    setSubmissionLock(true);
+  }
+
   function missingRequiredDocuments() {
     const missing = [];
     if (!hasPassportPhoto) missing.push('a passport photo');
@@ -338,6 +392,10 @@
 
     continueProgramButton.disabled = !personalComplete || pendingSaves > 0 || saveTimers.size > 0;
     continueDocumentsButton.disabled = !selectionComplete;
+    const submissionBlockers = getSubmissionBlockers();
+    const saving = pendingSaves > 0 || saveTimers.size > 0 || saveChains.size > 0 || pendingUploads > 0
+      || saveState.dataset.state === 'saving';
+    submitApplicationButton.disabled = submissionLocked || submissionBlockers.length > 0 || saving;
     documentUploadStatus.className = `application-progress-tag ${documentsComplete ? 'is-complete' : 'is-in-progress'}`;
     documentUploadStatus.lastChild.textContent = documentsComplete ? 'Complete' : 'Required';
     nextStepHelp.textContent = currentStep === 1
@@ -346,9 +404,13 @@
         ? selectionComplete
           ? `Saved: ${selectedProgram.name} · ${selectedProgram.intake} intake.`
           : 'Select one program and an intake, then save your choice.'
-        : documentsComplete
-          ? 'All required documents are uploaded. Additional documents are optional.'
-          : `Upload ${missingRequiredDocuments().join(', ')}. Additional documents are optional.`;
+        : submissionLocked
+          ? 'Your application has been submitted and is read-only.'
+          : submissionBlockers.length
+            ? `Before submitting, ${submissionBlockers.join('; ')}.`
+            : saving
+              ? 'Wait for your latest changes and uploads to finish saving.'
+              : 'Your application is complete and ready to submit.';
   }
 
   function setProgramSummary(program, intake) {
@@ -457,6 +519,7 @@
     saveProgramButton.hidden = step !== 2;
     continueDocumentsButton.hidden = step !== 2;
     backToProgramButton.hidden = step !== 3;
+    submitApplicationButton.hidden = step !== 3 || submissionLocked;
     updateApplicationProgress();
     if (scroll) {
       const section = [personalInfoSection, programSelectionSection, documentUploadSection][step - 1];
@@ -467,6 +530,7 @@
   function selectProgramLevel(level) {
     const isChangingLevel = activeProgramLevel !== level;
     activeProgramLevel = level;
+    setTrainingArrangementForLevel(level);
     if (isChangingLevel) {
       pendingProgramId = selectedProgram && selectedProgram.level === level ? selectedProgram.id : '';
     }
@@ -481,9 +545,29 @@
     updateProgramChoice();
   }
 
+  function setTrainingArrangementForLevel(level) {
+    const requiredArrangement = {
+      'Short courses': 'Online',
+      Certificate: 'Weekday',
+      Diploma: 'Weekend',
+    }[level];
+    const correspondenceInput = trainingArrangementInputs.find((input) => input.value === 'By Correspondence');
+    const correspondenceSelected = Boolean(correspondenceInput && correspondenceInput.checked);
+    trainingArrangementInputs.forEach((input) => {
+      const isCorrespondence = input.value === 'By Correspondence';
+      input.disabled = !isCorrespondence;
+      input.checked = isCorrespondence
+        ? correspondenceSelected
+        : Boolean(requiredArrangement && input.value === requiredArrangement);
+    });
+  }
+
   async function loadApplicationProfile() {
     try {
-      const payload = await window.EaimsAuth.request('/api/application/profile');
+      const [payload] = await Promise.all([
+        window.EaimsAuth.request('/api/application/profile'),
+        window.EaimsAuth.getCsrfToken(),
+      ]);
       const profile = payload.data.profile;
       countrySelect.innerHTML = '<option value="">Select your country</option>' + payload.data.countries
         .map((country) => `<option value="${country}">${country}</option>`)
@@ -513,15 +597,8 @@
         setFieldValue(field, profile[field]);
       }
       const selectedArrangements = Array.isArray(profile.trainingArrangements) ? profile.trainingArrangements : [];
-      form.querySelectorAll('input[name="trainingArrangements"]').forEach((input) => {
+      trainingArrangementInputs.forEach((input) => {
         input.checked = selectedArrangements.includes(input.value);
-      });
-      const employmentHistory = Array.isArray(profile.employmentHistory) ? profile.employmentHistory : [];
-      employmentHistoryRows.querySelectorAll('.employment-history-row').forEach((row, index) => {
-        const record = employmentHistory[index] || {};
-        row.querySelectorAll('[data-employment-field]').forEach((input) => {
-          input.value = record[input.dataset.employmentField] || '';
-        });
       });
       setFieldValue('courseReason', profile.courseReason);
       hasPassportPhoto = Boolean(profile.hasPassportPhoto);
@@ -530,6 +607,18 @@
       renderApplicationDocuments();
       selectedProgram = payload.data.programSelection;
       if (selectedProgram) {
+        setTrainingArrangementForLevel(selectedProgram.level);
+        const normalizedArrangements = getProfileFieldValue('trainingArrangements');
+        const savedArrangements = selectedArrangements.filter((arrangement) => (
+          trainingArrangementInputs.some((input) => input.value === arrangement)
+        ));
+        if (!payload.data.submission
+          && JSON.stringify(normalizedArrangements.slice().sort()) !== JSON.stringify(savedArrangements.slice().sort())) {
+          await window.EaimsAuth.request('/api/application/profile', {
+            method: 'PATCH',
+            body: JSON.stringify({ trainingArrangements: normalizedArrangements }),
+          });
+        }
         activeProgramLevel = selectedProgram.level;
         pendingProgramId = selectedProgram.id;
         pendingIntake = selectedProgram.intake;
@@ -540,9 +629,12 @@
         });
         renderProgramTable(activeProgramLevel, pendingProgramId);
         renderIntakeCards(pendingIntake);
+      } else {
+        setTrainingArrangementForLevel('');
       }
       updateProgramChoice();
       updateProfileStatus();
+      renderSubmissionState(payload.data.submission, profile.applicationNumber);
       showStep(window.location.hash === '#documents' ? 3 : 1, false);
       setSaveState('All changes saved');
     } catch (error) {
@@ -573,7 +665,11 @@
       await window.EaimsAuth.request('/api/application/profile', {
         method: 'PATCH',
         body: JSON.stringify({ [field]: value }),
+        keepalive: true,
       });
+      if (JSON.stringify(getProfileFieldValue(field)) === JSON.stringify(value)) {
+        dirtyFields.delete(field);
+      }
       updateProfileStatus();
       if (errorElement) errorElement.hidden = true;
       clearApplicationError();
@@ -599,20 +695,63 @@
     }
   }
 
+  function queueSave(field) {
+    if (queuedSaveFields.has(field)) return;
+    queuedSaveFields.add(field);
+    const previousSave = saveChains.get(field) || Promise.resolve();
+    const currentSave = previousSave
+      .catch(() => {})
+      .then(async () => {
+        queuedSaveFields.delete(field);
+        await saveField(field);
+      });
+    saveChains.set(field, currentSave);
+    currentSave.catch((error) => {
+      showApplicationError(error.message);
+      setSaveState('Changes could not be saved', 'error');
+    }).finally(() => {
+      if (saveChains.get(field) === currentSave) saveChains.delete(field);
+      queuedSaveFields.delete(field);
+      updateApplicationProgress();
+    });
+    updateApplicationProgress();
+  }
+
   function scheduleSave(field, immediate = false) {
+    dirtyFields.add(field);
     const existing = saveTimers.get(field);
     if (existing) clearTimeout(existing);
     if (immediate) {
       saveTimers.delete(field);
-      saveField(field);
+      queueSave(field);
       return;
     }
     saveTimers.set(field, setTimeout(() => {
       saveTimers.delete(field);
-      saveField(field);
+      queueSave(field);
     }, 500));
     updateApplicationProgress();
   }
+
+  window.addEventListener('pagehide', () => {
+    for (const field of dirtyFields) {
+      const timer = saveTimers.get(field);
+      if (timer) clearTimeout(timer);
+      saveTimers.delete(field);
+      const value = getProfileFieldValue(field);
+      void window.EaimsAuth.request('/api/application/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ [field]: value }),
+        keepalive: true,
+      }).then(() => {
+        if (JSON.stringify(getProfileFieldValue(field)) === JSON.stringify(value)) {
+          dirtyFields.delete(field);
+        }
+      }).catch((error) => {
+        console.error(`Unable to save ${field} while leaving the application page.`, error);
+      });
+    }
+  });
 
   for (const field of [
     'firstName',
@@ -633,12 +772,8 @@
   form.querySelectorAll('input[name="gender"]').forEach((input) => {
     input.addEventListener('change', () => scheduleSave('gender', true));
   });
-  form.querySelectorAll('input[name="trainingArrangements"]').forEach((input) => {
+  trainingArrangementInputs.forEach((input) => {
     input.addEventListener('change', () => scheduleSave('trainingArrangements', true));
-  });
-  employmentHistoryRows.querySelectorAll('[data-employment-field]').forEach((input) => {
-    input.addEventListener('input', () => scheduleSave('employmentHistory'));
-    input.addEventListener('blur', () => scheduleSave('employmentHistory', true));
   });
   const courseReasonInput = form.elements.namedItem('courseReason');
   courseReasonInput.addEventListener('input', () => scheduleSave('courseReason'));
@@ -659,6 +794,8 @@
     const reader = new FileReader();
     reader.addEventListener('load', () => showProfilePhoto(String(reader.result)));
     reader.readAsDataURL(file);
+    pendingUploads += 1;
+    updateApplicationProgress();
     setSaveState('Uploading photo...', 'saving');
     try {
       const response = await fetch('/api/application/profile/photo', {
@@ -690,6 +827,9 @@
       errorElement.textContent = error.fields?.passportPhoto || error.message;
       errorElement.hidden = false;
       setSaveState('Photo could not be saved', 'error');
+    } finally {
+      pendingUploads = Math.max(0, pendingUploads - 1);
+      updateApplicationProgress();
     }
   }
 
@@ -725,6 +865,55 @@
     if (selectedProgram && selectedProgram.intake) showStep(3);
   });
   backToProgramButton.addEventListener('click', () => showStep(2));
+  submitApplicationButton.addEventListener('click', async () => {
+    const blockers = getSubmissionBlockers();
+    if (blockers.length || pendingSaves || saveTimers.size || pendingUploads || submissionLocked) {
+      updateApplicationProgress();
+      return;
+    }
+    if (!window.confirm('Submit your application now? You will not be able to edit it after submission.')) return;
+
+    submitApplicationButton.disabled = true;
+    submitApplicationButton.setAttribute('aria-busy', 'true');
+    clearApplicationError();
+    try {
+      const payload = await window.EaimsAuth.request('/api/application/submit', { method: 'POST' });
+      renderSubmissionState(payload.data.submission, payload.data.submission.applicationNumber);
+      updateApplicationProgress();
+    } catch (error) {
+      if (error.status === 401 || error.status === 403) {
+        window.location.assign('/login.html');
+        return;
+      }
+      showApplicationError(error.message);
+      if (error.fields) {
+        if (error.fields.programSelection) showStep(2);
+        else if (error.fields.transcript || error.fields.identity || error.fields.passportPhoto) showStep(3);
+        else showStep(1);
+        for (const [field, message] of Object.entries(error.fields)) {
+          const inlineError = form.querySelector(`[data-error-for="${CSS.escape(field)}"]`);
+          const uploadError = documentErrors[field];
+          const errorElement = inlineError || uploadError;
+          if (!errorElement) continue;
+          errorElement.textContent = message;
+          errorElement.hidden = false;
+          const input = field === 'gender'
+            ? form.querySelector('input[name="gender"]')
+            : field === 'trainingArrangements'
+              ? form.querySelector('input[name="trainingArrangements"]')
+              : form.elements.namedItem(field);
+          input?.setAttribute('aria-invalid', 'true');
+        }
+        if (error.fields.programSelection) {
+          programError.textContent = error.fields.programSelection;
+          programError.hidden = false;
+        }
+      }
+    } finally {
+      submitApplicationButton.removeAttribute('aria-busy');
+      updateApplicationProgress();
+    }
+  });
 
   programTableBody.addEventListener('change', () => {
     programError.hidden = true;

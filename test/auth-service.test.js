@@ -14,11 +14,11 @@ process.env.BCRYPT_ROUNDS = '4';
 
 const db = require('../src/db');
 const { createPasswordReset } = require('../src/services/otp');
-const { resetPassword, AppError } = require('../src/services/auth-service');
+const { registerApplicant, resetPassword, AppError } = require('../src/services/auth-service');
 
 let testApplicantId;
 
-describe('auth service password reset', () => {
+describe('auth service', () => {
   before(async () => {
     await db.migrate();
   });
@@ -55,5 +55,23 @@ describe('auth service password reset', () => {
       resetPassword(token, 'Another-password-789'),
       (error) => error instanceof AppError && error.code === 'INVALID_RESET_TOKEN',
     );
+  });
+
+  test('assigns a unique application number when an applicant registers', async () => {
+    const registration = await registerApplicant({
+      surname: 'Applicant',
+      otherNames: 'New',
+      email: 'new-applicant@example.com',
+      phone: '+256700000001',
+      phoneCountryCode: '+256',
+      nationality: 'Ugandan',
+      dateOfBirth: '2000-01-01',
+      sex: 'FEMALE',
+      password: 'Applicant-password-123',
+    });
+
+    assert.match(registration.applicationNumber, /^EAIMS-\d{4}-\d{6}$/);
+    const applicant = await db.get('SELECT application_number FROM applicants WHERE id = ?', [registration.applicantId]);
+    assert.equal(applicant.application_number, registration.applicationNumber);
   });
 });

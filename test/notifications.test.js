@@ -68,7 +68,7 @@ describe('sendEmail', () => {
     const result = await sendEmail({ to: 'user@example.com', subject: 'Test', text: 'Test' });
     assert.equal(result.sent, false);
     assert.equal(result.reason, 'SMTP_ERROR');
-    assert.equal(result.error, 'Connection refused');
+    assert.equal(Object.hasOwn(result, 'error'), false);
     mockTransporter.sendMail = originalSend;
   });
 });
@@ -134,7 +134,7 @@ describe('sendSms', () => {
     assert.equal(result.sent, false);
     assert.equal(result.reason, 'SMS_API_ERROR');
     assert.equal(result.status, 401);
-    assert.ok(result.error.includes('invalid api key'));
+    assert.equal(Object.hasOwn(result, 'error'), false);
   });
 
   test('returns SMS_NETWORK_ERROR when fetch throws', async () => {
@@ -142,7 +142,7 @@ describe('sendSms', () => {
     const result = await sendSms({ to: '+256700000000', message: 'Hello' });
     assert.equal(result.sent, false);
     assert.equal(result.reason, 'SMS_NETWORK_ERROR');
-    assert.equal(result.error, 'ECONNREFUSED');
+    assert.equal(Object.hasOwn(result, 'error'), false);
   });
 });
 
@@ -348,6 +348,6 @@ describe('testSmtpConnection', () => {
     assert.equal(result.configured, true);
     assert.equal(result.smtpConnection, 'SMTP connection failed');
     assert.equal(result.smtpAuth, 'SMTP authentication failed');
-    assert.equal(result.error, 'Connection refused');
+    assert.equal(Object.hasOwn(result, 'error'), false);
   });
 });

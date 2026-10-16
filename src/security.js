@@ -22,6 +22,7 @@ function safeEqual(left, right) {
 function publicApplicant(applicant) {
   if (!applicant) return null;
   return {
+    applicationNumber: applicant.application_number,
     surname: applicant.surname,
     otherNames: applicant.other_names,
     email: applicant.email,

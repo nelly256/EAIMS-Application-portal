@@ -42,6 +42,18 @@
           <p>STUDENT PORTAL</p>
           <h1 id="viewTitle">Dashboard</h1>
         </div>
+        <div class="notification-center">
+          <button id="notificationBell" class="notification-bell" type="button"
+            aria-label="Notifications" aria-expanded="false" aria-controls="notificationsPanel">
+            <i class="fas fa-bell" aria-hidden="true"></i>
+            <span id="notificationCount" class="notification-count" aria-label="Unread notifications" hidden>0</span>
+          </button>
+          <section id="notificationsPanel" class="notification-panel" aria-label="Application notifications" hidden>
+            <h2>Notifications</h2>
+            <p id="notificationsEmptyState" class="notifications-empty">No application updates yet.</p>
+            <ul id="notificationsList" class="notifications-list"></ul>
+          </section>
+        </div>
         <div class="student-identity">
           <div class="student-identity-copy">
             <strong id="headerApplicantName">Applicant</strong>
@@ -80,6 +92,17 @@
                 <span id="profileCompletionLabel">Complete your profile details to get started.</span>
                 <strong id="profileCompletionPercent">0%</strong>
               </div>
+              <section class="application-status-progress" aria-labelledby="applicationJourneyTitle">
+                <h3 id="applicationJourneyTitle">Application journey</h3>
+                <ol class="application-status-steps">
+                  <li class="application-status-step is-upcoming" data-status="submitted">
+                    <span aria-hidden="true"></span><strong>Submitted</strong>
+                  </li>
+                  <li class="application-status-step is-upcoming" data-status="admitted">
+                    <span aria-hidden="true"></span><strong>Admitted</strong>
+                  </li>
+                </ol>
+              </section>
             </article>
 
             <article class="portal-panel next-step-panel" id="application">
@@ -135,10 +158,10 @@
                   <span class="checklist-copy"><strong>Supporting documents</strong><small id="documentChecklistDescription">Upload your passport photo, transcripts, and ID or passport</small></span>
                   <span class="checklist-status" id="documentChecklistStatus">Upcoming</span>
                 </li>
-                <li class="checklist-item">
+                <li class="checklist-item" id="submissionChecklist">
                   <span class="checklist-state" aria-hidden="true"></span>
-                  <span class="checklist-copy"><strong>Application submission</strong><small>Submit when all application steps are complete</small></span>
-                  <span class="checklist-status">Upcoming</span>
+                  <span class="checklist-copy"><strong>Application submission</strong><small id="submissionChecklistDescription">Submit when all application steps are complete</small></span>
+                  <span class="checklist-status" id="submissionChecklistStatus">Upcoming</span>
                 </li>
               </ul>
             </article>
@@ -162,6 +185,7 @@
               <span class="profile-verified"><i class="fas fa-circle-check" aria-hidden="true"></i> Verified account</span>
             </header>
             <dl class="profile-list">
+              <div><dt>Application number</dt><dd id="applicantApplicationNumber"></dd></div>
               <div><dt>Full name</dt><dd id="applicantNameDetail"></dd></div>
               <div><dt>Email address</dt><dd id="applicantEmail"></dd></div>
               <div><dt>Phone number</dt><dd id="applicantPhone"></dd></div>

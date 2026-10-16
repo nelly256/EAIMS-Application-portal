@@ -2524,6 +2524,7 @@ ul {
 }
 
 .student-topbar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2531,6 +2532,108 @@ ul {
   padding: 0.8rem clamp(1.25rem, 3vw, 2.75rem);
   background: #ffffff;
   border-bottom: 1px solid var(--portal-border);
+}
+
+.notification-center {
+  position: relative;
+  margin-left: auto;
+  margin-right: clamp(1rem, 3vw, 2.5rem);
+}
+
+.notification-bell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: #4b515c;
+  background: #f6f7f9;
+  border: 1px solid var(--portal-border);
+  border-radius: 50%;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.notification-bell:hover,
+.notification-bell:focus-visible {
+  color: var(--portal-wine);
+  border-color: var(--portal-wine);
+}
+
+.notification-count {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  display: grid;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding-inline: 0.2rem;
+  place-items: center;
+  color: #ffffff;
+  background: #bb2545;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.notification-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.8rem);
+  right: -1rem;
+  width: min(23rem, calc(100vw - 2rem));
+  max-height: min(28rem, calc(100vh - 7rem));
+  overflow-y: auto;
+  padding: 1rem;
+  background: #ffffff;
+  border: 1px solid var(--portal-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 36px rgba(23, 31, 44, 0.16);
+}
+
+.notification-panel h2 {
+  margin: 0 0 0.8rem;
+  color: #292b31;
+  font-size: 1rem;
+}
+
+.notifications-empty {
+  margin: 0;
+  color: var(--portal-muted);
+  font-size: 0.85rem;
+}
+
+.notifications-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notification-item {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  color: #505663;
+  background: #f8f9fb;
+  border-radius: 7px;
+  font-size: 0.82rem;
+}
+
+.notification-item.is-unread {
+  background: #fff4f6;
+  box-shadow: inset 3px 0 var(--portal-wine);
+}
+
+.notification-item strong {
+  color: #292b31;
+}
+
+.notification-item time {
+  color: var(--portal-muted);
+  font-size: 0.72rem;
 }
 
 .topbar-title p {
@@ -2756,6 +2859,78 @@ ul {
 
 .profile-progress-foot {
   margin-top: 0.6rem;
+}
+
+.application-status-progress {
+  margin-top: 1.5rem;
+}
+
+.application-status-progress h3 {
+  margin: 0 0 0.8rem;
+  color: #505663;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.application-status-steps {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.application-status-step {
+  position: relative;
+  display: grid;
+  flex: 1;
+  justify-items: center;
+  gap: 0.45rem;
+  color: #9297a1;
+  text-align: center;
+}
+
+.application-status-step:not(:last-child)::after {
+  position: absolute;
+  top: 0.42rem;
+  left: calc(50% + 0.55rem);
+  width: calc(100% - 1.1rem);
+  height: 2px;
+  background: #e5e8ed;
+  content: "";
+}
+
+.application-status-step > span {
+  z-index: 1;
+  width: 0.9rem;
+  height: 0.9rem;
+  background: #e5e8ed;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #d5d9df;
+}
+
+.application-status-step strong {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.application-status-step.is-complete,
+.application-status-step.is-current {
+  color: var(--portal-wine);
+}
+
+.application-status-step.is-complete > span,
+.application-status-step.is-current > span {
+  background: var(--portal-wine);
+  box-shadow: 0 0 0 1px var(--portal-wine);
+}
+
+.application-status-step.is-complete:not(:last-child)::after {
+  background: var(--portal-wine);
+}
+
+.application-status-step.is-current strong {
+  font-weight: 750;
 }
 
 .profile-progress-foot strong {
@@ -3209,6 +3384,19 @@ ul {
 
   .student-identity {
     gap: 0.55rem;
+  }
+
+  .notification-center {
+    margin-right: 0.65rem;
+  }
+
+  .notification-bell {
+    width: 2.45rem;
+    height: 2.45rem;
+  }
+
+  .notification-panel {
+    right: -8.5rem;
   }
 
   .student-identity-copy strong {
@@ -3808,6 +3996,15 @@ ul {
   border-color: #82aef8;
 }
 
+.application-checkbox-options label:has(input:disabled:not(:checked)) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.application-checkbox-options label:has(input:checked:disabled) {
+  cursor: default;
+}
+
 .application-checkbox-options input {
   width: 1rem;
   height: 1rem;
@@ -4213,6 +4410,20 @@ ul {
 .application-continue-button:disabled {
   cursor: not-allowed;
   opacity: 0.78;
+}
+
+.application-submit-button {
+  background: #176b4c;
+}
+
+.application-submission-status {
+  margin-bottom: 0.75rem;
+  padding: 0.8rem 0.95rem;
+  color: #176b4c;
+  background: #eaf9f1;
+  border: 1px solid #bee9d4;
+  border-radius: 5px;
+  font-size: 0.86rem;
 }
 
 .application-save-message {

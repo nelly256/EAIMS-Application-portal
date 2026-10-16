@@ -29,22 +29,27 @@ async function registerApplicant(input) {
   const passwordHash = await bcrypt.hash(input.password, config.bcryptRounds);
   let result;
   try {
-    result = await db.run(
-      `INSERT INTO applicants
-        (surname, other_names, email, phone, phone_country_code, nationality, date_of_birth, sex, password_hash)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        input.surname,
-        input.otherNames,
-        input.email,
-        input.phone,
-        input.phoneCountryCode,
-        input.nationality,
-        input.dateOfBirth,
-        input.sex,
-        passwordHash,
-      ],
-    );
+    result = await db.transaction(async () => {
+      const inserted = await db.run(
+        `INSERT INTO applicants
+          (surname, other_names, email, phone, phone_country_code, nationality, date_of_birth, sex, password_hash)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          input.surname,
+          input.otherNames,
+          input.email,
+          input.phone,
+          input.phoneCountryCode,
+          input.nationality,
+          input.dateOfBirth,
+          input.sex,
+          passwordHash,
+        ],
+      );
+      const applicationNumber = `EAIMS-${new Date().getUTCFullYear()}-${String(inserted.id).padStart(6, '0')}`;
+      await db.run('UPDATE applicants SET application_number = ? WHERE id = ?', [applicationNumber, inserted.id]);
+      return { id: inserted.id, applicationNumber };
+    });
   } catch (error) {
     if (String(error.code).includes('SQLITE_CONSTRAINT')) {
       throw new AppError(409, 'ACCOUNT_EXISTS', 'An account already exists with the provided details.');
@@ -56,8 +61,8 @@ async function registerApplicant(input) {
   const delivery = await sendVerification({ email: input.email, phone: input.phone, surname: input.surname, otherNames: input.otherNames }, code);
   return {
     applicantId: result.id,
+    applicationNumber: result.applicationNumber,
     delivery,
-    developmentCode: config.devOtpDelivery ? code : undefined,
     deliveryAvailable: Boolean(delivery.email.sent || delivery.sms.sent),
   };
 }
@@ -107,7 +112,7 @@ async function requestPasswordReset(identifier) {
   const token = await createPasswordReset(applicant.id);
   const resetUrl = `${config.appBaseUrl}/reset-password.html?token=${encodeURIComponent(token)}`;
   const delivery = await sendPasswordReset(applicant, resetUrl);
-  return { sent: Boolean(delivery.email.sent || delivery.sms.sent), delivery, resetUrl };
+  return { sent: Boolean(delivery.email.sent || delivery.sms.sent), delivery };
 }
 
 async function resetPassword(token, password) {

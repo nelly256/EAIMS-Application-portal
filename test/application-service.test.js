@@ -17,6 +17,10 @@ const {
   MAX_PHOTO_BYTES,
   MAX_APPLICATION_DOCUMENT_BYTES,
   getApplicationProfile,
+  getApplicationSubmission,
+  getApplicationStatusNotifications,
+  markApplicationStatusNotificationsRead,
+  updateApplicationStatus,
   saveApplicationProfile,
   savePassportPhoto,
   getPassportPhoto,
@@ -27,6 +31,7 @@ const {
   getPrograms,
   getProgramSelection,
   saveProgramSelection,
+  submitApplication,
 } = require('../src/services/application-service');
 
 let applicantId;
@@ -76,6 +81,8 @@ describe('application profile service', () => {
   });
 
   beforeEach(async () => {
+    await db.run('DELETE FROM application_status_notifications');
+    await db.run('DELETE FROM application_submissions');
     await db.run('DELETE FROM application_profiles');
     await db.run('DELETE FROM application_program_selections');
     await db.run('DELETE FROM application_documents');
@@ -106,6 +113,36 @@ describe('application profile service', () => {
     assert.equal(profile.next_of_kin_contact, '+256 700 111 222');
   });
 
+  test('backfills application numbers for existing applicants using their creation year', async () => {
+    await db.run(
+      "UPDATE applicants SET created_at = '2019-05-15 10:30:00' WHERE id = ?",
+      [applicantId],
+    );
+    await db.migrate();
+    const applicant = await db.get('SELECT application_number FROM applicants WHERE id = ?', [applicantId]);
+    assert.equal(applicant.application_number, `EAIMS-2019-${String(applicantId).padStart(6, '0')}`);
+  });
+
+  test('migrates submitted-only constraint for admissions status updates', async () => {
+    await db.run('DROP TABLE application_submissions');
+    await db.exec(`
+      CREATE TABLE application_submissions (
+        applicant_id INTEGER PRIMARY KEY,
+        status TEXT NOT NULL CHECK (status = 'submitted'),
+        submitted_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+      )
+    `);
+    await db.run("INSERT INTO application_submissions (applicant_id, status) VALUES (?, 'submitted')", [applicantId]);
+
+    await db.migrate();
+    const status = await updateApplicationStatus(applicantId, 'in_review');
+    assert.equal(status.status, 'in_review');
+    const notifications = await getApplicationStatusNotifications(applicantId);
+    assert.deepEqual(notifications.items.map((item) => item.status), ['submitted']);
+    assert.equal(notifications.unreadCount, 1);
+  });
+
   test('rejects invalid profile fields without saving them', async () => {
     await assert.rejects(
       saveApplicationProfile(applicantId, { countryOfBirth: 'Atlantis' }),
@@ -126,7 +163,7 @@ describe('application profile service', () => {
 
   test('saves and retrieves training arrangements, employment history, and course reason', async () => {
     const updates = {
-      trainingArrangements: ['Weekend', 'Day'],
+      trainingArrangements: ['Weekend', 'By Correspondence'],
       employmentHistory: [
         {
           position: 'Program Officer',
@@ -151,7 +188,7 @@ describe('application profile service', () => {
     };
 
     const saved = await saveApplicationProfile(applicantId, updates);
-    assert.deepEqual(JSON.parse(saved.training_arrangements), ['Day', 'Weekend']);
+    assert.deepEqual(JSON.parse(saved.training_arrangements), ['Weekend', 'By Correspondence']);
     assert.deepEqual(JSON.parse(saved.employment_history), updates.employmentHistory);
     assert.equal(saved.course_reason, updates.courseReason);
   });
@@ -316,12 +353,28 @@ describe('application profile service', () => {
       physicalAddress: 'Kampala, Uganda',
       nextOfKinName: 'Mary Matsiko',
       nextOfKinContact: '+256 700 111 222',
+      trainingArrangements: ['By Correspondence'],
     });
     const saved = await saveProgramSelection(applicantId, { programId: programs[0].id, intake: 'March' });
     assert.equal(saved.id, programs[0].id);
     assert.equal(saved.name, programs[0].name);
     assert.equal(saved.intake, 'March');
     assert.equal((await getProgramSelection(applicantId)).id, programs[0].id);
+    assert.deepEqual(
+      JSON.parse((await getApplicationProfile(applicantId)).training_arrangements),
+      ['Online', 'By Correspondence'],
+    );
+
+    await saveProgramSelection(applicantId, { programId: 'diploma-business-administration', intake: 'March' });
+    assert.deepEqual(
+      JSON.parse((await getApplicationProfile(applicantId)).training_arrangements),
+      ['Weekend', 'By Correspondence'],
+    );
+    await saveProgramSelection(applicantId, { programId: 'national-certificate-business-administration', intake: 'March' });
+    assert.deepEqual(
+      JSON.parse((await getApplicationProfile(applicantId)).training_arrangements),
+      ['Weekday', 'By Correspondence'],
+    );
 
     const replacement = await saveProgramSelection(applicantId, { programId: programs[1].id, intake: 'August' });
     assert.equal(replacement.id, programs[1].id);
@@ -369,6 +422,98 @@ describe('application profile service', () => {
         && error.code === 'APPLICATION_PROFILE_INCOMPLETE'
         && Boolean(error.fields.nextOfKinName)
         && Boolean(error.fields.nextOfKinContact),
+    );
+  });
+
+  test('requires every required detail and document before submission, then locks the application', async () => {
+    await assert.rejects(
+      submitApplication(applicantId),
+      (error) => error instanceof ApplicationError
+        && error.code === 'APPLICATION_INCOMPLETE'
+        && Boolean(error.fields.idNumber)
+        && Boolean(error.fields.trainingArrangements)
+        && Boolean(error.fields.programSelection)
+        && Boolean(error.fields.transcript),
+    );
+    assert.equal(await getApplicationSubmission(applicantId), undefined);
+
+    await saveApplicationProfile(applicantId, {
+      firstName: 'Nelson',
+      lastName: 'Matsiko',
+      idNumber: 'CM123456',
+      countryOfBirth: 'Uganda',
+      dateOfBirth: '2000-01-01',
+      gender: 'MALE',
+      physicalAddress: 'Kampala, Uganda',
+      nextOfKinName: 'Mary Matsiko',
+      nextOfKinContact: '+256 700 111 222',
+      trainingArrangements: ['Online'],
+    });
+    await saveProgramSelection(applicantId, { programId: getPrograms()[0].id, intake: 'March' });
+    await savePassportPhoto(applicantId, Buffer.from([0xff, 0xd8, 0xff, 0x00]), 'image/jpeg');
+    await saveApplicationDocument(applicantId, 'transcript', Buffer.from('%PDF-1.7 transcript'), 'application/pdf', 'transcript.pdf');
+    const identity = await saveApplicationDocument(
+      applicantId,
+      'identity',
+      Buffer.from('%PDF-1.7 identity'),
+      'application/pdf',
+      'identity.pdf',
+    );
+
+    await saveApplicationProfile(applicantId, { trainingArrangements: ['Weekend'] });
+    await assert.rejects(
+      submitApplication(applicantId),
+      (error) => error instanceof ApplicationError
+        && error.code === 'APPLICATION_INCOMPLETE'
+        && Boolean(error.fields.trainingArrangements),
+    );
+    await saveApplicationProfile(applicantId, { trainingArrangements: ['Online'] });
+    const submission = await submitApplication(applicantId);
+    assert.equal(submission.status, 'submitted');
+    assert.match(submission.applicationNumber, /^EAIMS-\d{4}-\d{6}$/);
+    assert.ok(submission.submittedAt);
+    assert.equal((await getApplicationSubmission(applicantId)).status, 'submitted');
+
+    await assert.rejects(
+      saveApplicationProfile(applicantId, { physicalAddress: 'Changed address' }),
+      (error) => error instanceof ApplicationError && error.code === 'APPLICATION_ALREADY_SUBMITTED',
+    );
+    await assert.rejects(
+      savePassportPhoto(applicantId, Buffer.from([0xff, 0xd8, 0xff]), 'image/jpeg'),
+      (error) => error instanceof ApplicationError && error.code === 'APPLICATION_ALREADY_SUBMITTED',
+    );
+    await assert.rejects(
+      saveApplicationDocument(applicantId, 'additional', Buffer.from('%PDF-1.7 extra'), 'application/pdf', 'extra.pdf'),
+      (error) => error instanceof ApplicationError && error.code === 'APPLICATION_ALREADY_SUBMITTED',
+    );
+    await assert.rejects(
+      deleteApplicationDocument(applicantId, identity.id),
+      (error) => error instanceof ApplicationError && error.code === 'APPLICATION_ALREADY_SUBMITTED',
+    );
+    const inReview = await updateApplicationStatus(applicantId, 'in_review');
+    assert.equal(inReview.status, 'in_review');
+    assert.equal((await updateApplicationStatus(applicantId, 'in_review')).status, 'in_review');
+    await assert.rejects(
+      updateApplicationStatus(applicantId, 'submitted'),
+      (error) => error instanceof ApplicationError && error.code === 'APPLICATION_STATUS_REGRESSION',
+    );
+    const notifications = await getApplicationStatusNotifications(applicantId);
+    assert.deepEqual(notifications.items.map((item) => item.status), ['submitted']);
+    assert.equal(notifications.unreadCount, 1);
+    assert.equal((await markApplicationStatusNotificationsRead(applicantId)).updatedCount, 1);
+    assert.equal((await getApplicationStatusNotifications(applicantId)).unreadCount, 0);
+    assert.equal((await updateApplicationStatus(applicantId, 'approved')).status, 'approved');
+    assert.equal((await updateApplicationStatus(applicantId, 'admitted')).status, 'admitted');
+    const finalNotifications = await getApplicationStatusNotifications(applicantId);
+    assert.deepEqual(finalNotifications.items.map((item) => item.status), ['admitted', 'submitted']);
+    assert.equal(finalNotifications.unreadCount, 1);
+    await assert.rejects(
+      saveProgramSelection(applicantId, { programId: getPrograms()[1].id, intake: 'August' }),
+      (error) => error instanceof ApplicationError && error.code === 'APPLICATION_ALREADY_SUBMITTED',
+    );
+    await assert.rejects(
+      submitApplication(applicantId),
+      (error) => error instanceof ApplicationError && error.code === 'APPLICATION_ALREADY_SUBMITTED',
     );
   });
 });

@@ -10,11 +10,29 @@
     element.classList.add(`is-${state}`);
   }
 
+  const applicationStatuses = ['submitted', 'admitted'];
+  const statusLabels = {
+    submitted: 'Submitted',
+    admitted: 'Admitted',
+  };
+  const statusMessages = {
+    submitted: 'Your application has been submitted successfully.',
+    admitted: 'Congratulations! Your admission has been confirmed.',
+  };
+
   async function loadTracking() {
     try {
       const payload = await window.EaimsAuth.request('/api/application/profile');
       const profile = payload.data.profile;
       const programSelection = payload.data.programSelection;
+      const submission = payload.data.submission;
+      const notifications = payload.data.notifications || { items: [] };
+      const applicationStatus = submission && submission.status;
+      const isSubmitted = Boolean(submission);
+      const journeyStatus = isSubmitted
+        ? applicationStatus === 'admitted' ? 'admitted' : 'submitted'
+        : null;
+      const statusIndex = applicationStatuses.indexOf(journeyStatus);
       const values = [
         profile.firstName,
         profile.lastName,
@@ -46,10 +64,17 @@
         .join('')
         .slice(0, 2)
         .toUpperCase() || 'AP';
-      document.getElementById('applicationState').textContent = 'Not submitted';
-      document.getElementById('submittedOn').textContent = 'Not yet';
+      document.getElementById('applicationReference').textContent = profile.applicationNumber || 'Application number pending';
+      document.getElementById('applicationState').textContent = isSubmitted
+        ? statusLabels[applicationStatus] || 'Submitted'
+        : 'Not submitted';
+      document.getElementById('submittedOn').textContent = submission?.submittedAt
+        ? new Date(submission.submittedAt).toLocaleString()
+        : 'Not yet';
       document.getElementById('documentsUploaded').textContent = `${documents.length + (profile.hasPassportPhoto ? 1 : 0)} Uploaded`;
-      document.getElementById('currentStatus').textContent = programSelection
+      document.getElementById('currentStatus').textContent = isSubmitted
+        ? statusMessages[journeyStatus]
+        : programSelection
         ? hasCompleteProgramChoice ? 'Program and intake selected' : 'Choose an intake'
         : profileComplete
         ? 'Personal information complete'
@@ -82,22 +107,52 @@
         ? `${documents.length} supporting documents and passport photo uploaded.`
         : 'Upload a passport photo, at least one academic transcript, and your National ID or passport.';
 
+      const statusSteps = [
+        ['timelineSubmitted', 'timelineSubmittedStatus'],
+        ['timelineAdmitted', 'timelineAdmittedStatus'],
+      ];
+      statusSteps.forEach(([stepId, labelId], index) => {
+        const state = statusIndex < 0 || index > statusIndex
+          ? 'upcoming'
+          : index === statusIndex ? 'in-progress' : 'complete';
+        setProfileState(document.getElementById(stepId), state);
+        document.getElementById(labelId).textContent = state === 'complete'
+          ? 'Complete'
+          : state === 'in-progress' ? 'Current' : 'Upcoming';
+      });
+      document.getElementById('timelineSubmittedText').textContent = isSubmitted
+        ? `Your application was submitted successfully${submission.submittedAt ? ` on ${new Date(submission.submittedAt).toLocaleString()}` : ''}.`
+        : 'Submit your completed application for admissions review.';
+      document.getElementById('timelineAdmittedText').textContent = applicationStatus === 'admitted'
+        ? statusMessages.admitted
+        : 'Your admission confirmation will appear here when available.';
+
       const latestDocument = documents.reduce((latest, document) => (
         !latest || document.created_at > latest.created_at ? document : latest
       ), null);
       const latestDocumentDate = latestDocument ? latestDocument.created_at : '';
-      const activityRecord = hasCompleteProgramChoice && (!profile.updatedAt || programSelection.updatedAt >= profile.updatedAt)
-        ? { date: programSelection.updatedAt, text: 'Program choice saved' }
-        : latestDocumentDate && (!profile.updatedAt || latestDocumentDate >= profile.updatedAt)
-          ? { date: latestDocumentDate, text: 'Supporting document uploaded' }
-          : profile.updatedAt ? { date: profile.updatedAt, text: 'Personal information last saved' } : null;
+      const latestStatusNotification = Array.isArray(notifications.items) ? notifications.items[0] : null;
+      const activityRecord = latestStatusNotification
+        ? {
+          date: latestStatusNotification.createdAt,
+          text: `${statusLabels[latestStatusNotification.status] || 'Application status'} update`,
+        }
+        : isSubmitted
+        ? { date: submission.submittedAt, text: 'Application submitted' }
+        : hasCompleteProgramChoice && (!profile.updatedAt || programSelection.updatedAt >= profile.updatedAt)
+          ? { date: programSelection.updatedAt, text: 'Program choice saved' }
+          : latestDocumentDate && (!profile.updatedAt || latestDocumentDate >= profile.updatedAt)
+            ? { date: latestDocumentDate, text: 'Supporting document uploaded' }
+            : profile.updatedAt ? { date: profile.updatedAt, text: 'Personal information last saved' } : null;
       if (activityRecord) {
         const activityDate = new Date(activityRecord.date);
         document.getElementById('recentActivity').textContent = activityRecord.text;
         const time = document.getElementById('recentActivityDate');
-        time.dateTime = activityDate.toISOString();
-        time.textContent = activityDate.toLocaleString();
-        time.hidden = false;
+        if (!Number.isNaN(activityDate.getTime())) {
+          time.dateTime = activityDate.toISOString();
+          time.textContent = activityDate.toLocaleString();
+          time.hidden = false;
+        }
       }
       content.hidden = false;
     } catch (requestError) {

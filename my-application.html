@@ -40,7 +40,7 @@
       <main class="application-content">
         <header class="application-masthead">
           <div class="application-hero-copy">
-      <p class="application-number" id="applicationReference"><i class="fas fa-pen-to-square" aria-hidden="true"></i> Applicant registration</p>
+      <p class="application-number" id="applicationReference"><i class="fas fa-hashtag" aria-hidden="true"></i> Loading application number...</p>
       <h1>Complete Your Registration in 3 Simple Steps</h1>
       <p>Fill in your details below. Your progress is automatically saved as you type.</p>
       <ol class="application-stepper" id="progress" aria-label="Application steps" data-active-step="1">
@@ -72,6 +72,7 @@
     <div class="application-main">
     <div id="applicationError" class="form-message form-message-error" role="alert" hidden></div>
     <div id="applicationSuccess" class="application-save-message" role="status" aria-live="polite" hidden></div>
+    <div id="applicationSubmissionStatus" class="application-submission-status" role="status" aria-live="polite" hidden></div>
 
     <form id="applicationProfileForm" class="application-form" novalidate>
       <section class="application-section" id="personalInfoSection" aria-labelledby="personalInfoTitle">
@@ -238,66 +239,16 @@
           <div class="application-field-group application-study-details-group">
             <h3><i class="fas fa-clock" aria-hidden="true"></i> Training Time and Arrangement</h3>
             <fieldset class="application-checkbox-fieldset" id="trainingArrangementsGroup" aria-describedby="trainingArrangementsHelp trainingArrangementsError">
-              <legend>Select all that apply</legend>
+              <legend>Schedule is set by study level</legend>
               <div class="application-checkbox-options">
-                <label><input type="checkbox" name="trainingArrangements" value="Day" /> Day</label>
-                <label><input type="checkbox" name="trainingArrangements" value="Evening" /> Evening</label>
-                <label><input type="checkbox" name="trainingArrangements" value="By Modules" /> By Modules</label>
+                <label><input type="checkbox" name="trainingArrangements" value="Weekday" disabled /> Weekday (Thursday and Friday)</label>
+                <label><input type="checkbox" name="trainingArrangements" value="Weekend" disabled /> Weekend (Saturday and Sunday)</label>
+                <label><input type="checkbox" name="trainingArrangements" value="Online" disabled /> Online</label>
                 <label><input type="checkbox" name="trainingArrangements" value="By Correspondence" /> By Correspondence</label>
-                <label><input type="checkbox" name="trainingArrangements" value="Weekend" /> Weekend (Saturday and Sunday)</label>
               </div>
             </fieldset>
-            <p class="application-field-help" id="trainingArrangementsHelp">Choose any study times or arrangements that suit you.</p>
+            <p class="application-field-help" id="trainingArrangementsHelp">Weekday is selected for Certificate, Weekend for Diploma, and Online for Short Courses. By Correspondence is available for every level.</p>
             <p class="application-field-error" id="trainingArrangementsError" data-error-for="trainingArrangements" role="alert" hidden></p>
-          </div>
-
-          <div class="application-field-group">
-            <h3><i class="fas fa-briefcase" aria-hidden="true"></i> Employment Record <small>(if any)</small></h3>
-            <p class="application-field-help">Start with your current job. Add up to four positions; leave “To” blank for a current position.</p>
-            <div class="employment-history-table-wrapper">
-              <table class="employment-history-table" aria-label="Employment history">
-                <thead>
-                  <tr>
-                    <th scope="col">Position</th>
-                    <th scope="col">Organization/Employer</th>
-                    <th scope="colgroup" colspan="2">Year(s)</th>
-                  </tr>
-                  <tr>
-                    <th scope="col"><span class="visually-hidden">Position</span></th>
-                    <th scope="col"><span class="visually-hidden">Organization/Employer</span></th>
-                    <th scope="col">From</th>
-                    <th scope="col">To</th>
-                  </tr>
-                </thead>
-                <tbody id="employmentHistoryRows">
-                  <tr class="employment-history-row">
-                    <td><input type="text" data-employment-field="position" maxlength="120" aria-label="Position for employment record 1" /></td>
-                    <td><input type="text" data-employment-field="organization" maxlength="160" aria-label="Organization or employer for employment record 1" /></td>
-                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="fromYear" aria-label="Start year for employment record 1" /></td>
-                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="toYear" aria-label="End year for employment record 1" /></td>
-                  </tr>
-                  <tr class="employment-history-row">
-                    <td><input type="text" data-employment-field="position" maxlength="120" aria-label="Position for employment record 2" /></td>
-                    <td><input type="text" data-employment-field="organization" maxlength="160" aria-label="Organization or employer for employment record 2" /></td>
-                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="fromYear" aria-label="Start year for employment record 2" /></td>
-                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="toYear" aria-label="End year for employment record 2" /></td>
-                  </tr>
-                  <tr class="employment-history-row">
-                    <td><input type="text" data-employment-field="position" maxlength="120" aria-label="Position for employment record 3" /></td>
-                    <td><input type="text" data-employment-field="organization" maxlength="160" aria-label="Organization or employer for employment record 3" /></td>
-                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="fromYear" aria-label="Start year for employment record 3" /></td>
-                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="toYear" aria-label="End year for employment record 3" /></td>
-                  </tr>
-                  <tr class="employment-history-row">
-                    <td><input type="text" data-employment-field="position" maxlength="120" aria-label="Position for employment record 4" /></td>
-                    <td><input type="text" data-employment-field="organization" maxlength="160" aria-label="Organization or employer for employment record 4" /></td>
-                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="fromYear" aria-label="Start year for employment record 4" /></td>
-                    <td><input type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="YYYY" data-employment-field="toYear" aria-label="End year for employment record 4" /></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="application-field-error" data-error-for="employmentHistory" role="alert" hidden></p>
           </div>
 
           <div class="application-field-group application-course-reason-group">
@@ -391,6 +342,7 @@
         <button class="application-continue-button" id="saveProgramButton" type="button" hidden disabled>Save Program Choice</button>
         <button class="application-continue-button" id="continueDocumentsButton" type="button" hidden disabled>Continue to Documents <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
         <button class="application-continue-button" id="backToProgramButton" type="button" hidden><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Program Selection</button>
+        <button class="application-continue-button application-submit-button" id="submitApplicationButton" type="button" hidden disabled>Submit Application <i class="fas fa-paper-plane" aria-hidden="true"></i></button>
       </footer>
     </form>
   </div>
