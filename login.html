@@ -5,64 +5,81 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Log in to the EAIMS Online Application Portal" />
   <title>Log In | EAIMS Online Application Portal</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="/style.css" />
   <link rel="icon" href="/favicon.png" type="image/png" />
 </head>
-<body class="auth-page-body">
-  <main class="auth-page">
-    <div class="auth-page-inner">
-      <section class="auth-brand" aria-label="EAIMS Online Application Portal">
-        <img class="brand-logo" src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" />
-      </section>
+<body class="auth-page-body register-page-body">
+  <main class="auth-page register-page login-page">
+    <section class="register-visual" aria-label="EAIMS graduate community">
+      <img class="register-visual-image" src="/grad2.jpeg" alt="EAIMS graduates celebrating their achievement" />
+      <div class="register-visual-copy">
+        <span class="visual-accent" aria-hidden="true"></span>
+        <h1>Welcome back to <em>your journey.</em></h1>
+        <p>Sign in to continue your application, upload documents and track your progress.</p>
+        <ul class="login-points">
+          <li><i class="fas fa-file-lines" aria-hidden="true"></i> Pick up your application where you left off</li>
+          <li><i class="fas fa-location-crosshairs" aria-hidden="true"></i> Track your application status in real time</li>
+          <li><i class="fas fa-shield-halved" aria-hidden="true"></i> Your information stays secure and private</li>
+        </ul>
+      </div>
+    </section>
 
-      <section class="auth-card auth-card-login" aria-labelledby="login-title">
-        <div class="auth-header">
-          <h2 class="auth-title" id="login-title">LOG IN TO YOUR ACCOUNT</h2>
-          <p class="auth-subtitle">Access your applicant dashboard and continue your application.</p>
-        </div>
+    <section class="register-panel" aria-label="Log in to your account">
+      <div class="register-form-inner login-form-inner">
+        <section class="auth-brand register-brand" aria-label="EAIMS Online Application Portal">
+          <img class="brand-logo" src="/EAIMS%20logo.jpg" alt="East African Institute for Management Science logo" />
+        </section>
 
-        <form id="loginForm" novalidate>
-          <div class="field">
-            <label class="visually-hidden" for="identifier">Email or Phone Number</label>
-            <div class="input-shell">
-              <i class="fas fa-user input-icon"></i>
-              <input id="identifier" name="identifier" type="text" placeholder="Email or Phone Number" autocomplete="username" required />
+        <section class="auth-card auth-card-register auth-card-login" aria-labelledby="login-title">
+          <div class="auth-header">
+            <h2 class="auth-title" id="login-title">Log in to your account</h2>
+            <p class="auth-subtitle">Access your applicant dashboard and continue your application.</p>
+          </div>
+
+          <form id="loginForm" novalidate>
+            <div class="field">
+              <label for="identifier">Email or phone number</label>
+              <div class="input-shell">
+                <i class="fas fa-user input-icon"></i>
+                <input id="identifier" name="identifier" type="text" placeholder="Email or phone number" autocomplete="username" required />
+              </div>
+              <p class="field-help">This field is case sensitive</p>
+              <p class="field-error" data-field-error="identifier" hidden></p>
             </div>
-            <p class="field-help">This field is case sensitive</p>
-            <p class="field-error" data-field-error="identifier" hidden></p>
-          </div>
 
-          <div class="field">
-            <label class="visually-hidden" for="password">Password</label>
-            <div class="input-shell password-shell">
-              <i class="fas fa-lock input-icon"></i>
-              <input id="password" name="password" type="password" placeholder="Password" autocomplete="current-password" required />
-              <button class="password-toggle" type="button" aria-controls="password" aria-label="Show password" aria-pressed="false">
-                <i class="fas fa-eye"></i>
-                <i class="fas fa-eye-slash" hidden></i>
-              </button>
+            <div class="field">
+              <label for="password">Password</label>
+              <div class="input-shell password-shell">
+                <i class="fas fa-lock input-icon"></i>
+                <input id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required />
+                <button class="password-toggle" type="button" aria-controls="password" aria-label="Show password" aria-pressed="false">
+                  <i class="fas fa-eye"></i>
+                  <i class="fas fa-eye-slash" hidden></i>
+                </button>
+              </div>
+              <p class="field-error" data-field-error="password" hidden></p>
             </div>
-            <p class="field-error" data-field-error="password" hidden></p>
-          </div>
 
-          <div class="auth-links">
-            <a class="auth-link" href="/register.html">Create an account</a>
-            <a class="auth-link" href="/forgot-password.html">Forgot your password?</a>
-          </div>
+            <div class="login-options">
+              <a class="auth-link" href="/forgot-password.html">Forgot your password?</a>
+            </div>
 
-          <div id="formError" class="form-message form-message-error" role="alert" hidden></div>
-          <div id="formSuccess" class="form-message form-message-success" role="status" hidden></div>
-          <button class="btn btn-primary btn-lg btn-block auth-submit" type="submit">LOG IN</button>
-        </form>
-      </section>
-    </div>
+            <div id="formError" class="form-message form-message-error" role="alert" hidden></div>
+            <div id="formSuccess" class="form-message form-message-success" role="status" hidden></div>
+            <button class="btn btn-primary btn-lg btn-block auth-submit" type="submit">Log in <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+          </form>
+
+          <p class="auth-footer-text">New to EAIMS? <a class="auth-link" href="/register.html">Create an account</a></p>
+          <p class="register-home-link"><a href="/" data-back><i class="fas fa-arrow-left" aria-hidden="true"></i> Back</a></p>
+        </section>
+        <footer class="register-footer"><p>&copy; 2026 EAIMS. All Rights Reserved.</p></footer>
+      </div>
+    </section>
   </main>
-
-  <footer class="auth-footer">
-    <p>&copy; 2026 EAIMS. All Rights Reserved.</p>
-  </footer>
 
   <script src="/js/auth-client.js"></script>
   <script src="/js/login.js"></script>
+  <script src="/js/back-link.js"></script>
 </body>
 </html>

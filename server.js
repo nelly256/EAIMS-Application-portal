@@ -24,7 +24,7 @@ if (config.nodeEnv === 'production') app.set('trust proxy', 1);
       directives: {
         defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+      styleSrc: ["'self'", "'unsafe-inline'",       'https://cdnjs.cloudflare.com', 'https://fonts.googleapis.com'],
         imgSrc: ["'self'", 'data:', 'https:'],
         fontSrc: ["'self'", 'https://cdnjs.cloudflare.com', 'https://fonts.gstatic.com'],
         connectSrc: ["'self'"],
@@ -256,7 +256,7 @@ app.get('/favicon.svg', (req, res) => sendFile(res, 'favicon.svg'));
 app.get('/eaims-logo.jpeg', (req, res) => sendFile(res, path.join('src', 'EAIMS logo.jpeg')));
 app.get('/grad.JPG.jpeg', (req, res) => sendFile(res, 'grad.JPG.jpeg'));
 app.get('/grad2.jpeg', (req, res) => sendFile(res, 'grad2.jpeg'));
-app.get('/grad3.jpeg', (req, res) => sendFile(res, 'grad3.jpeg'));
+app.get('/grad4.png', (req, res) => sendFile(res, 'grad4.png'));
 app.get('/EAIMS%20logo.jpg', (req, res) => sendFile(res, 'EAIMS logo.jpg'));
 app.get('/EAIMS%20logo.jpeg', (req, res) => sendFile(res, 'EAIMS logo.jpeg'));
 app.use('/js', express.static(path.join(__dirname, 'public', 'js'), {
