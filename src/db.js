@@ -6,27 +6,37 @@ const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'eaims
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const db = new Database(DB_PATH);
-db.run('PRAGMA foreign_keys = ON');
-db.run('PRAGMA journal_mode = WAL');
+const initialized = new Promise((resolve, reject) => {
+  db.run('PRAGMA foreign_keys = ON', (foreignKeysError) => {
+    if (foreignKeysError) {
+      reject(foreignKeysError);
+      return;
+    }
+    db.run('PRAGMA journal_mode = WAL', (journalModeError) => {
+      if (journalModeError) reject(journalModeError);
+      else resolve();
+    });
+  });
+});
 
-const run = (sql, params = []) => new Promise((resolve, reject) => {
+const run = (sql, params = []) => initialized.then(() => new Promise((resolve, reject) => {
   db.run(sql, params, function (err) {
     if (err) return reject(err);
     resolve({ id: this.lastID, changes: this.changes });
   });
-});
+}));
 
-const get = (sql, params = []) => new Promise((resolve, reject) => {
+const get = (sql, params = []) => initialized.then(() => new Promise((resolve, reject) => {
   db.get(sql, params, (err, row) => (err ? reject(err) : resolve(row)));
-});
+}));
 
-const all = (sql, params = []) => new Promise((resolve, reject) => {
+const all = (sql, params = []) => initialized.then(() => new Promise((resolve, reject) => {
   db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows)));
-});
+}));
 
-const exec = (sql) => new Promise((resolve, reject) => {
+const exec = (sql) => initialized.then(() => new Promise((resolve, reject) => {
   db.exec(sql, (err) => (err ? reject(err) : resolve()));
-});
+}));
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS applicants (
@@ -133,6 +143,17 @@ CREATE TABLE IF NOT EXISTS application_submissions (
   FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS application_submission_failures (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  applicant_id INTEGER NOT NULL,
+  failure_code TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_application_submission_failures_applicant
+ON application_submission_failures(applicant_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS application_status_notifications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   applicant_id INTEGER NOT NULL,
@@ -152,10 +173,154 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+
+CREATE TABLE IF NOT EXISTS support_agents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_login_at TEXT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_support_agents_email_normalized
+ON support_agents(lower(email));
+
+CREATE TABLE IF NOT EXISTS admin_users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('superadmin', 'admin', 'reviewer')),
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_login_at TEXT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_users_email_normalized
+ON admin_users(lower(email));
+
+CREATE TABLE IF NOT EXISTS programs (
+  id TEXT PRIMARY KEY,
+  level TEXT NOT NULL,
+  name TEXT NOT NULL,
+  duration TEXT NOT NULL DEFAULT '',
+  tuition TEXT NOT NULL DEFAULT '',
+  eligibility TEXT NOT NULL DEFAULT '',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS intakes (
+  name TEXT PRIMARY KEY,
+  opening_date TEXT,
+  closing_date TEXT,
+  is_open INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS program_intakes (
+  program_id TEXT NOT NULL,
+  intake_name TEXT NOT NULL,
+  is_available INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (program_id, intake_name),
+  FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE,
+  FOREIGN KEY (intake_name) REFERENCES intakes(name) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS announcements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  is_published INTEGER NOT NULL DEFAULT 1,
+  created_by INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (created_by) REFERENCES admin_users(id)
+);
+
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin_id INTEGER,
+  action TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT,
+  details TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created
+ON admin_audit_logs(created_at DESC, id DESC);
+
+CREATE TABLE IF NOT EXISTS chat_conversations (
+  id TEXT PRIMARY KEY,
+  visitor_key TEXT NOT NULL UNIQUE,
+  applicant_id INTEGER,
+  status TEXT NOT NULL DEFAULT 'bot'
+    CHECK (status IN ('bot', 'pending_human', 'in_progress', 'closed')),
+  handoff_reason TEXT,
+  assigned_agent_id INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE SET NULL,
+  FOREIGN KEY (assigned_agent_id) REFERENCES support_agents(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_conversations_applicant
+ON chat_conversations(applicant_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_conversations_status
+ON chat_conversations(status, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  conversation_id TEXT NOT NULL,
+  sender_type TEXT NOT NULL
+    CHECK (sender_type IN ('applicant', 'assistant', 'support', 'system')),
+  sender_agent_id INTEGER,
+  content TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id) ON DELETE CASCADE,
+  FOREIGN KEY (sender_agent_id) REFERENCES support_agents(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation
+ON chat_messages(conversation_id, id);
 `;
 
 async function migrate() {
+  await prepareCatalogSchema();
   await exec(SCHEMA);
+  const programCatalog = require('./services/program-catalog');
+  await transaction(async () => {
+    for (const [index, program] of programCatalog.PROGRAMS.entries()) {
+      await run(
+        `INSERT OR IGNORE INTO programs (id, level, name, duration, tuition, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [program.id, program.level, program.name, program.duration, program.tuition, index],
+      );
+    }
+    for (const intake of programCatalog.INTAKES) {
+      await run('INSERT OR IGNORE INTO intakes (name) VALUES (?)', [intake]);
+      for (const program of programCatalog.PROGRAMS) {
+        await run(
+          `INSERT OR IGNORE INTO program_intakes (program_id, intake_name)
+           VALUES (?, ?)`,
+          [program.id, intake],
+        );
+      }
+    }
+  });
+  const programColumns = await all('PRAGMA table_info(programs)');
+  if (!programColumns.some((column) => column.name === 'sort_order')) {
+    await exec('ALTER TABLE programs ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0');
+    const programCatalog = require('./services/program-catalog');
+    for (const [index, program] of programCatalog.PROGRAMS.entries()) {
+      await run('UPDATE programs SET sort_order = ? WHERE id = ?', [index, program.id]);
+    }
+  }
   const applicantColumns = await all('PRAGMA table_info(applicants)');
   if (!applicantColumns.some((column) => column.name === 'application_number')) {
     await exec('ALTER TABLE applicants ADD COLUMN application_number TEXT');
@@ -262,6 +427,61 @@ async function migrate() {
   `);
 }
 
+async function prepareCatalogSchema() {
+  const tableExists = async (name) => Boolean(await get(
+    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+    [name],
+  ));
+  const columnsFor = async (name) => all(`PRAGMA table_info(${name})`);
+  const existingPrograms = await tableExists('programs');
+  const existingIntakes = await tableExists('intakes');
+  const programColumns = existingPrograms ? await columnsFor('programs') : [];
+  const intakeColumns = existingIntakes ? await columnsFor('intakes') : [];
+  const programColumnNames = new Set(programColumns.map((column) => column.name));
+  const intakeColumnNames = new Set(intakeColumns.map((column) => column.name));
+  const idColumn = programColumns.find((column) => column.name === 'id');
+  const nameColumn = intakeColumns.find((column) => column.name === 'name');
+
+  const archivePrograms = existingPrograms && (
+    !idColumn
+    || idColumn.type.toUpperCase() !== 'TEXT'
+    || idColumn.pk !== 1
+    || !['level', 'name', 'duration', 'tuition', 'eligibility']
+      .every((column) => programColumnNames.has(column))
+  );
+  const archiveIntakes = existingIntakes && (
+    !nameColumn
+    || nameColumn.pk !== 1
+    || !['opening_date', 'closing_date', 'is_open']
+      .every((column) => intakeColumnNames.has(column))
+  );
+
+  const legacyTables = [];
+  if (archivePrograms || archiveIntakes) {
+    if (await tableExists('program_intakes')) {
+      legacyTables.push(['program_intakes', 'program_intakes_legacy']);
+    }
+  }
+  if (archivePrograms) legacyTables.push(['programs', 'programs_legacy']);
+  if (archiveIntakes) legacyTables.push(['intakes', 'intakes_legacy']);
+  if (!legacyTables.length) return;
+
+  for (const [, archiveName] of legacyTables) {
+    if (await tableExists(archiveName)) {
+      throw new Error(
+        `Cannot migrate the legacy admissions catalogue because ${archiveName} already exists. `
+        + 'Inspect the existing archive before retrying.',
+      );
+    }
+  }
+
+  await transaction(async () => {
+    for (const [tableName, archiveName] of legacyTables) {
+      await run(`ALTER TABLE ${tableName} RENAME TO ${archiveName}`);
+    }
+  });
+}
+
 async function transaction(work) {
   await exec('BEGIN IMMEDIATE');
   try {
@@ -275,7 +495,9 @@ async function transaction(work) {
 }
 
 async function close() {
-  await new Promise((resolve) => db.close(resolve));
+  await new Promise((resolve, reject) => {
+    db.close((error) => (error ? reject(error) : resolve()));
+  });
 }
 
 if (require.main === module && process.argv[2] === 'migrate') {

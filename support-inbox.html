@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admissions support inbox | EAIMS</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/css/chatbot.css" />
+</head>
+<body class="support-page">
+  <main class="support-inbox-shell" data-agent-id="">
+    <header class="support-topbar">
+      <div>
+        <a class="support-brand" href="/">EAIMS Admissions Support</a>
+        <h1>Applicant conversations</h1>
+      </div>
+      <button id="support-logout" class="button button-secondary" type="button">Sign out</button>
+    </header>
+    <p id="support-inbox-status" class="support-feedback" role="status"></p>
+    <div class="support-workspace">
+      <aside class="support-conversation-list" id="support-conversation-list" aria-label="Open conversations"></aside>
+      <section class="support-detail" id="support-detail" aria-label="Conversation details" hidden>
+        <header class="support-detail-header">
+          <div>
+            <h2 id="support-conversation-title">Conversation</h2>
+            <p id="support-conversation-info"></p>
+          </div>
+          <div class="support-detail-actions">
+            <button id="support-claim" class="button button-secondary" type="button" hidden>Assign to me</button>
+            <button id="support-close" class="button button-secondary" type="button">Close</button>
+          </div>
+        </header>
+        <div id="support-messages" class="support-messages" role="log" aria-live="polite"></div>
+        <form id="support-reply-form" class="support-reply-form">
+          <label class="visually-hidden" for="support-reply">Reply to applicant</label>
+          <textarea id="support-reply" name="message" maxlength="2000" rows="3" placeholder="Write a reply..." required></textarea>
+          <button class="button" type="submit">Send reply</button>
+        </form>
+      </section>
+      <section class="support-detail support-detail-empty" id="support-empty">
+        <p>Select a conversation to view messages and reply.</p>
+      </section>
+    </div>
+  </main>
+  <script src="/js/support-inbox.js" defer></script>
+</body>
+</html>

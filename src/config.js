@@ -19,6 +19,12 @@ const config = {
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900000,
   rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100,
   authRateLimitMaxRequests: parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS, 10) || 20,
+  chatbot: {
+    groqApiKey: process.env.GROQ_API_KEY || '',
+    groqModel: process.env.GROQ_MODEL || '',
+    requestTimeoutMs: parseInt(process.env.CHATBOT_TIMEOUT_MS, 10) || 15000,
+    maxMessagesPerHour: parseInt(process.env.CHATBOT_MAX_MESSAGES_PER_HOUR, 10) || 30,
+  },
   smtp: {
     host: process.env.SMTP_HOST || '',
     port: parseInt(process.env.SMTP_PORT, 10) || 587,
@@ -37,8 +43,32 @@ const config = {
   appBaseUrl: process.env.APP_BASE_URL || 'http://localhost:3000',
 };
 
-if (nodeEnv === 'production' && config.sessionSecret.length < 32) {
-  throw new Error('SESSION_SECRET must be at least 32 characters in production');
+function validateProductionConfig(settings = config) {
+  if (settings.nodeEnv !== 'production') return;
+
+  const sessionSecret = settings.sessionSecret.trim();
+  if (sessionSecret.length < 32 || /^change[-_ ]?this/i.test(sessionSecret)) {
+    throw new Error('Set SESSION_SECRET to a unique value of at least 32 characters in production.');
+  }
+
+  let appUrl;
+  try {
+    appUrl = new URL(settings.appBaseUrl);
+  } catch {
+    throw new Error('Set APP_BASE_URL to a valid HTTPS URL in production.');
+  }
+  if (appUrl.protocol !== 'https:' || ['localhost', '127.0.0.1', '[::1]'].includes(appUrl.hostname)) {
+    throw new Error('APP_BASE_URL must use HTTPS and a public hostname in production.');
+  }
+
+  const hasGroqKey = Boolean(settings.chatbot.groqApiKey);
+  const hasGroqModel = Boolean(settings.chatbot.groqModel);
+  if (hasGroqKey !== hasGroqModel) {
+    throw new Error('Set both GROQ_API_KEY and GROQ_MODEL, or leave both empty.');
+  }
 }
 
+validateProductionConfig();
+
 module.exports = config;
+module.exports.validateProductionConfig = validateProductionConfig;

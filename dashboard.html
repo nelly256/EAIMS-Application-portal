@@ -7,6 +7,8 @@
   <title>Applicant Dashboard | EAIMS Online Application Portal</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/css/chatbot.css" />
+  <link rel="stylesheet" href="/css/applicant-announcements.css" />
   <link rel="icon" href="/favicon.png" type="image/png" />
 </head>
 <body class="portal-dashboard-body">
@@ -71,6 +73,14 @@
             <p>Track your application progress and manage your admission journey.</p>
           </section>
 
+          <section class="portal-panel applicant-announcements" id="applicantAnnouncements" aria-labelledby="announcementsHeading" hidden>
+            <div class="panel-heading-copy">
+              <h2 id="announcementsHeading">Admissions announcements</h2>
+              <p>Important updates from the admissions office.</p>
+            </div>
+            <ul id="applicantAnnouncementsList"></ul>
+          </section>
+
           <section class="dashboard-overview" aria-label="Application overview">
             <article class="portal-panel application-progress-panel" id="progress">
               <div class="panel-heading-row">
@@ -97,6 +107,12 @@
                 <ol class="application-status-steps">
                   <li class="application-status-step is-upcoming" data-status="submitted">
                     <span aria-hidden="true"></span><strong>Submitted</strong>
+                  </li>
+                  <li class="application-status-step is-upcoming" data-status="in_review">
+                    <span aria-hidden="true"></span><strong>In review</strong>
+                  </li>
+                  <li class="application-status-step is-upcoming" data-status="approved">
+                    <span aria-hidden="true"></span><strong>Approved</strong>
                   </li>
                   <li class="application-status-step is-upcoming" data-status="admitted">
                     <span aria-hidden="true"></span><strong>Admitted</strong>
@@ -202,5 +218,6 @@
   <script src="/js/auth-client.js?v=2"></script>
   <script src="/js/nav.js"></script>
   <script src="/js/dashboard.js"></script>
+  <script src="/js/chatbot-widget.js" defer></script>
 </body>
 </html>

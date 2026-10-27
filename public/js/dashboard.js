@@ -9,17 +9,24 @@
   const notificationCount = document.getElementById('notificationCount');
   const notificationMessages = {
     submitted: ['Application submitted successfully', 'Your application has been submitted successfully.'],
+    in_review: ['Application under review', 'Admissions staff are reviewing your application.'],
+    approved: ['Application approved', 'Your application has been approved.'],
     admitted: ['You have been admitted!', 'Congratulations! Your admission has been confirmed.'],
   };
-  const applicationStatuses = ['submitted', 'admitted'];
+  const applicationStatuses = ['submitted', 'in_review', 'approved', 'admitted'];
+  const applicationStatusLabels = {
+    submitted: 'Submitted',
+    in_review: 'In review',
+    approved: 'Approved',
+    admitted: 'Admitted',
+  };
 
   function statusLabel(status) {
-    if (status === 'admitted') return 'Admitted';
-    return status ? 'Submitted' : 'In progress';
+    return applicationStatusLabels[status] || 'In progress';
   }
 
   function renderApplicationProgress(status) {
-    const journeyStatus = status ? status === 'admitted' ? 'admitted' : 'submitted' : null;
+    const journeyStatus = status || null;
     const currentIndex = applicationStatuses.indexOf(journeyStatus);
     document.querySelectorAll('.application-status-step').forEach((step, index) => {
       step.classList.remove('is-complete', 'is-current', 'is-upcoming');
@@ -59,6 +66,26 @@
     notificationBell.setAttribute('aria-label', unreadCount
       ? `Notifications, ${unreadCount} unread`
       : 'Notifications');
+  }
+
+  function renderAnnouncements(announcements) {
+    const section = document.getElementById('applicantAnnouncements');
+    const list = document.getElementById('applicantAnnouncementsList');
+    list.replaceChildren();
+    (Array.isArray(announcements) ? announcements : []).forEach((announcement) => {
+      const item = document.createElement('li');
+      const title = document.createElement('h3');
+      title.textContent = announcement.title;
+      const body = document.createElement('p');
+      body.textContent = announcement.body;
+      const date = document.createElement('time');
+      date.dateTime = announcement.createdAt;
+      const parsedDate = new Date(announcement.createdAt);
+      date.textContent = Number.isNaN(parsedDate.getTime()) ? '' : parsedDate.toLocaleString();
+      item.append(title, body, date);
+      list.appendChild(item);
+    });
+    section.hidden = list.childElementCount === 0;
   }
 
   function displayValue(value) {
@@ -131,7 +158,11 @@
       document.getElementById('applicationStatusText').textContent = isSubmitted
         ? applicationStatus === 'admitted'
           ? 'You have been admitted'
-          : 'Application submitted successfully'
+          : applicationStatus === 'approved'
+            ? 'Your application has been approved'
+            : applicationStatus === 'in_review'
+              ? 'Your application is under review'
+              : 'Application submitted successfully'
         : programSelection
         ? hasCompleteProgramChoice ? 'Program and intake selected' : 'Choose an intake to finish program selection'
         : profileStatus;
@@ -184,7 +215,11 @@
       document.getElementById('nextStepDescription').textContent = isSubmitted
         ? applicationStatus === 'admitted'
           ? 'Congratulations! You have been admitted.'
-          : `Your application ${applicant.applicationNumber ? `(${applicant.applicationNumber}) ` : ''}was submitted successfully${submission.submittedAt ? ` on ${new Date(submission.submittedAt).toLocaleString()}` : ''}.`
+          : applicationStatus === 'approved'
+            ? `Your application ${applicant.applicationNumber ? `(${applicant.applicationNumber}) ` : ''}has been approved.`
+            : applicationStatus === 'in_review'
+              ? `Your application ${applicant.applicationNumber ? `(${applicant.applicationNumber}) ` : ''}is being reviewed.`
+              : `Your application ${applicant.applicationNumber ? `(${applicant.applicationNumber}) ` : ''}was submitted successfully${submission.submittedAt ? ` on ${new Date(submission.submittedAt).toLocaleString()}` : ''}.`
         : programSelection
         ? hasCompleteProgramChoice
           ? `Your selected program is ${programSelection.name} for the ${programSelection.intake} intake. You can review or change your choice here.`
@@ -210,6 +245,7 @@
         : 'Submit when all application steps are complete';
       document.getElementById('submissionChecklistStatus').textContent = isSubmitted ? currentStatusLabel : 'Upcoming';
       renderNotifications(payload.data.notifications);
+      renderAnnouncements(payload.data.announcements);
       dashboardContent.hidden = false;
     } catch (error) {
       dashboardContent.hidden = true;

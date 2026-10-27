@@ -1,6 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const config = require('../config');
+const db = require('../db');
 const { csrfProtection, ensureCsrfToken } = require('../middleware/csrf');
 const {
   AppError,
@@ -123,8 +124,18 @@ router.post('/login', csrfProtection, asyncRoute(async (req, res) => {
     await new Promise((resolve, reject) => req.session.save((error) => (error ? reject(error) : resolve())));
     throw new AppError(403, 'VERIFICATION_REQUIRED', 'Verify your account before logging in.');
   }
+  const chatVisitorKey = req.session.chatVisitorKey;
   await new Promise((resolve, reject) => req.session.regenerate((error) => (error ? reject(error) : resolve())));
   req.session.userId = applicant.id;
+  if (chatVisitorKey) {
+    req.session.chatVisitorKey = chatVisitorKey;
+    await db.run(
+      `UPDATE chat_conversations
+       SET applicant_id = ?
+       WHERE visitor_key = ? AND applicant_id IS NULL`,
+      [applicant.id, chatVisitorKey],
+    );
+  }
   await new Promise((resolve, reject) => req.session.save((error) => (error ? reject(error) : resolve())));
   return res.json({ ok: true, data: { message: 'Login successful.', redirect: '/dashboard' } });
 }));

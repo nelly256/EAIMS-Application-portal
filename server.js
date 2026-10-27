@@ -13,6 +13,10 @@ const { testSmtpConnection } = require('./src/services/notifications');
 const applicationService = require('./src/services/application-service');
 const { COUNTRY_CODES } = require('./src/validation');
 const authRoutes = require('./src/routes/auth');
+const chatbotRoutes = require('./src/routes/chatbot');
+const supportRoutes = require('./src/routes/support');
+const adminRoutes = require('./src/routes/admin');
+const adminService = require('./src/services/admin-service');
 
 const app = express();
 
@@ -41,8 +45,30 @@ app.use(morgan(logFormat));
 app.use(express.json({ limit: '32kb' }));
 app.use(express.urlencoded({ extended: false, limit: '32kb' }));
 
+app.get('/health/live', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  return res.status(200).json({ status: 'alive' });
+});
+
+app.get('/health/ready', async (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    await db.get('SELECT 1 AS ready');
+    return res.status(200).json({
+      status: 'ready',
+      checks: {
+        database: 'ok',
+        chatbot: config.chatbot.groqApiKey && config.chatbot.groqModel ? 'groq' : 'local-fallback',
+      },
+    });
+  } catch {
+    console.error('Database readiness check failed.');
+    return res.status(503).json({ status: 'not_ready', checks: { database: 'unavailable' } });
+  }
+});
+
 const sessionStore = new SqliteSessionStore({ ttl: config.sessionMaxAge });
-app.use(session({
+const applicantSession = session({
   name: 'eaims.sid',
   secret: config.sessionSecret,
   store: sessionStore,
@@ -56,7 +82,43 @@ app.use(session({
     maxAge: config.sessionMaxAge,
     path: '/',
   },
-}));
+});
+const supportSession = session({
+  name: 'eaims.support.sid',
+  secret: config.sessionSecret,
+  store: sessionStore,
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    secure: config.cookieSecure,
+    sameSite: 'lax',
+    maxAge: config.sessionMaxAge,
+    path: '/',
+  },
+});
+const adminSession = session({
+  name: 'eaims.admin.sid',
+  secret: config.sessionSecret,
+  store: sessionStore,
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    secure: config.cookieSecure,
+    sameSite: 'lax',
+    maxAge: config.sessionMaxAge,
+    path: '/',
+  },
+});
+app.use((req, res, next) => {
+  if (/^\/(?:api\/support|support|api\/admin|admin)(?:\/|$)/.test(req.path)) return next();
+  return applicantSession(req, res, next);
+});
+app.use(['/api/support', '/support'], supportSession);
+app.use(['/api/admin', '/admin'], adminSession);
 app.use(ensureCsrfToken);
 
 const apiLimiter = rateLimit({
@@ -67,6 +129,9 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatbotRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/admin', adminRoutes);
 
 if (config.nodeEnv === 'development') {
   app.post('/api/dev/sms', (req, res) => {
@@ -88,12 +153,13 @@ if (config.nodeEnv === 'development') {
 app.get('/api/dashboard', requireAuth, requireVerified, async (req, res, next) => {
   const { publicApplicant } = require('./src/security');
   try {
-    const [profile, programSelection, documents, application, notifications] = await Promise.all([
+    const [profile, programSelection, documents, application, notifications, announcements] = await Promise.all([
       applicationService.getApplicationProfile(req.applicant.id),
       applicationService.getProgramSelection(req.applicant.id),
       applicationService.listApplicationDocuments(req.applicant.id),
       applicationService.getApplicationSubmission(req.applicant.id),
       applicationService.getApplicationStatusNotifications(req.applicant.id),
+      adminService.listAnnouncements(true),
     ]);
     const savedProfile = profile || {};
     return res.json({
@@ -102,6 +168,7 @@ app.get('/api/dashboard', requireAuth, requireVerified, async (req, res, next) =
         applicant: publicApplicant(req.applicant),
         application: application || null,
         notifications,
+        announcements,
         programSelection: programSelection || null,
         applicationProfile: {
           firstName: savedProfile ? savedProfile.first_name : req.applicant.other_names || '',
@@ -126,20 +193,22 @@ app.get('/api/dashboard', requireAuth, requireVerified, async (req, res, next) =
 
 app.get('/api/application/profile', requireAuth, requireVerified, async (req, res, next) => {
   try {
-    const [savedProfile, programSelection, documents, submission, notifications] = await Promise.all([
+    const [savedProfile, programSelection, documents, submission, notifications, programs, intakes] = await Promise.all([
       applicationService.getApplicationProfile(req.applicant.id),
       applicationService.getProgramSelection(req.applicant.id),
       applicationService.listApplicationDocuments(req.applicant.id),
       applicationService.getApplicationSubmission(req.applicant.id),
       applicationService.getApplicationStatusNotifications(req.applicant.id),
+      applicationService.getPrograms(),
+      applicationService.getIntakes(),
     ]);
     const profile = savedProfile || {};
     return res.json({
       ok: true,
       data: {
         countries: COUNTRY_CODES.map((country) => country.name),
-        programs: applicationService.getPrograms(),
-        intakes: applicationService.getIntakes(),
+        programs,
+        intakes,
         programSelection: programSelection || null,
         submission: submission || null,
         notifications,
@@ -344,12 +413,65 @@ app.get('/forgot-password.html', (req, res) => sendFile(res, 'forgot-password.ht
 app.get('/reset-password.html', (req, res) => sendFile(res, 'reset-password.html'));
 app.get('/dashboard.html', requireAuth, requireVerified, (req, res) => sendFile(res, 'dashboard.html'));
 app.get('/dashboard', requireAuth, requireVerified, (req, res) => sendFile(res, 'dashboard.html'));
+app.get('/admin/login', (req, res, next) => {
+  if (!req.session.adminUserId) {
+    res.set('Cache-Control', 'no-store');
+    return sendFile(res, 'admin-login.html');
+  }
+  return db.get('SELECT id FROM admin_users WHERE id = ? AND is_active = 1', [req.session.adminUserId])
+    .then((admin) => {
+      if (admin) return res.redirect('/admin');
+      res.set('Cache-Control', 'no-store');
+      return sendFile(res, 'admin-login.html');
+    })
+    .catch(next);
+});
+app.get('/admin', (req, res, next) => {
+  if (!req.session.adminUserId) return res.redirect('/admin/login');
+  return db.get('SELECT id FROM admin_users WHERE id = ? AND is_active = 1', [req.session.adminUserId])
+    .then((admin) => {
+      if (admin) {
+        res.set('Cache-Control', 'no-store');
+        return sendFile(res, 'admin.html');
+      }
+      return req.session.destroy((error) => {
+        if (error) return next(error);
+        return res.redirect('/admin/login');
+      });
+    })
+    .catch(next);
+});
 app.get('/my-application.html', requireAuth, requireVerified, (req, res) => sendFile(res, 'my-application.html'));
 app.get('/my-application', requireAuth, requireVerified, (req, res) => sendFile(res, 'my-application.html'));
 app.get('/track-application.html', requireAuth, requireVerified, (req, res) => sendFile(res, 'track-application.html'));
 app.get('/track-application', requireAuth, requireVerified, (req, res) => sendFile(res, 'track-application.html'));
 app.get('/documents.html', requireAuth, requireVerified, (req, res) => sendFile(res, 'documents.html'));
 app.get('/documents', requireAuth, requireVerified, (req, res) => sendFile(res, 'documents.html'));
+app.get('/support', (req, res) => res.redirect('/support/login'));
+app.get('/support/login', (req, res, next) => {
+  if (!req.session.supportAgentId) return sendFile(res, 'support-login.html');
+  db.get('SELECT id FROM support_agents WHERE id = ? AND is_active = 1', [req.session.supportAgentId])
+    .then((agent) => {
+      if (agent) return res.redirect('/support/inbox');
+      return req.session.destroy((error) => {
+        if (error) return next(error);
+        return sendFile(res, 'support-login.html');
+      });
+    })
+    .catch(next);
+});
+app.get('/support/inbox', (req, res, next) => {
+  if (!req.session.supportAgentId) return res.redirect('/support/login');
+  return db.get('SELECT id FROM support_agents WHERE id = ? AND is_active = 1', [req.session.supportAgentId])
+    .then((agent) => {
+      if (agent) return sendFile(res, 'support-inbox.html');
+      return req.session.destroy((error) => {
+        if (error) return next(error);
+        return res.redirect('/support/login');
+      });
+    })
+    .catch(next);
+});
 
 app.get('/style.css', (req, res) => sendFile(res, 'style.css'));
 app.get('/favicon.svg', (req, res) => sendFile(res, 'favicon.svg'));
@@ -362,6 +484,10 @@ app.get(/\.(jpe?g|png|gif|ico|webp)$/i, (req, res, next) => {
 });
 
 app.use('/js', express.static(path.join(__dirname, 'public', 'js'), {
+  immutable: true,
+  maxAge: config.nodeEnv === 'production' ? '1d' : 0,
+}));
+app.use('/css', express.static(path.join(__dirname, 'public', 'css'), {
   immutable: true,
   maxAge: config.nodeEnv === 'production' ? '1d' : 0,
 }));
@@ -384,19 +510,67 @@ app.use((error, req, res, next) => {
 
 async function start() {
   await db.migrate();
-  await new Promise((resolve) => {
-    app.listen(config.port, () => {
+  return new Promise((resolve, reject) => {
+    const server = app.listen(config.port, () => {
       console.log(`EAIMS portal listening on ${config.appBaseUrl}`);
-      resolve();
+      resolve(server);
+    });
+    server.once('error', reject);
+  });
+}
+
+async function shutdown(server, timeoutMs = 10000) {
+  if (!server || !server.listening) {
+    sessionStore.close();
+    return db.close();
+  }
+
+  await new Promise((resolve, reject) => {
+    const forceCloseTimer = setTimeout(() => {
+      console.error('Graceful shutdown timed out; closing active HTTP connections.');
+      server.closeAllConnections();
+    }, timeoutMs);
+    forceCloseTimer.unref();
+
+    server.close(async (error) => {
+      clearTimeout(forceCloseTimer);
+      sessionStore.close();
+      try {
+        await db.close();
+      } catch (closeError) {
+        return reject(closeError);
+      }
+      if (error) return reject(error);
+      return resolve();
     });
   });
 }
 
 if (require.main === module) {
-  start().catch((error) => {
+  start().then((server) => {
+    let shutdownStarted = false;
+    const handleShutdown = (signal) => {
+      if (shutdownStarted) return;
+      shutdownStarted = true;
+      console.log(`Received ${signal}; shutting down gracefully.`);
+      shutdown(server).catch((error) => {
+        console.error('Graceful shutdown failed.', error);
+        process.exitCode = 1;
+      });
+    };
+
+    process.once('SIGINT', () => handleShutdown('SIGINT'));
+    process.once('SIGTERM', () => handleShutdown('SIGTERM'));
+  }).catch(async (error) => {
     console.error(error);
+    sessionStore.close();
+    try {
+      await db.close();
+    } catch (closeError) {
+      console.error('Unable to close the database after startup failed.', closeError);
+    }
     process.exitCode = 1;
   });
 }
 
-module.exports = { app, start };
+module.exports = { app, start, shutdown };

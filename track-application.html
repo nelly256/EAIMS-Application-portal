@@ -7,6 +7,7 @@
   <title>Track My Application | EAIMS Online Application Portal</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/css/chatbot.css" />
   <link rel="icon" href="/favicon.png" type="image/png" />
 </head>
 <body class="portal-dashboard-body tracking-page-body">
@@ -103,6 +104,16 @@
                 <div><h3>Submitted</h3><p id="timelineSubmittedText">Submit your completed application for admissions review.</p></div>
                 <span class="timeline-status" id="timelineSubmittedStatus">Upcoming</span>
               </li>
+              <li class="timeline-item" id="timelineInReview">
+                <span class="timeline-marker"><i class="fas fa-magnifying-glass" aria-hidden="true"></i></span>
+                <div><h3>In Review</h3><p id="timelineInReviewText">Admissions staff will review your application.</p></div>
+                <span class="timeline-status" id="timelineInReviewStatus">Upcoming</span>
+              </li>
+              <li class="timeline-item" id="timelineApproved">
+                <span class="timeline-marker"><i class="fas fa-circle-check" aria-hidden="true"></i></span>
+                <div><h3>Approved</h3><p id="timelineApprovedText">An approval update will appear here when available.</p></div>
+                <span class="timeline-status" id="timelineApprovedStatus">Upcoming</span>
+              </li>
               <li class="timeline-item" id="timelineAdmitted">
                 <span class="timeline-marker"><i class="fas fa-graduation-cap" aria-hidden="true"></i></span>
                 <div><h3>Admitted</h3><p id="timelineAdmittedText">Your admission confirmation will appear here when available.</p></div>
@@ -124,5 +135,6 @@
 
   <script src="/js/auth-client.js"></script>
   <script src="/js/tracking.js"></script>
+  <script src="/js/chatbot-widget.js" defer></script>
 </body>
 </html>

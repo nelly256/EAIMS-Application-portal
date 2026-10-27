@@ -55,4 +55,4 @@ function isIntake(intake) {
   return INTAKES.includes(intake);
 }
 
-module.exports = { getPrograms, getProgram, getIntakes, isIntake };
+module.exports = { PROGRAMS, INTAKES, getPrograms, getProgram, getIntakes, isIntake };

@@ -2,7 +2,6 @@
 
 const db = require('../db');
 const { COUNTRY_CODES, validDate, validName } = require('../validation');
-const programCatalog = require('./program-catalog');
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const MAX_APPLICATION_DOCUMENT_BYTES = 10 * 1024 * 1024;
@@ -177,7 +176,7 @@ async function getApplicationStatusNotifications(applicantId) {
   const items = await db.all(
     `SELECT id, status, created_at AS createdAt, read_at AS readAt
      FROM application_status_notifications
-     WHERE applicant_id = ? AND status IN ('submitted', 'admitted')
+     WHERE applicant_id = ? AND status IN ('submitted', 'in_review', 'approved', 'admitted')
      ORDER BY created_at DESC, id DESC`,
     [applicantId],
   );
@@ -191,7 +190,8 @@ async function markApplicationStatusNotificationsRead(applicantId) {
   const result = await db.run(
     `UPDATE application_status_notifications
      SET read_at = datetime('now')
-     WHERE applicant_id = ? AND read_at IS NULL AND status IN ('submitted', 'admitted')`,
+     WHERE applicant_id = ? AND read_at IS NULL
+       AND status IN ('submitted', 'in_review', 'approved', 'admitted')`,
     [applicantId],
   );
   return { updatedCount: result.changes };
@@ -214,13 +214,11 @@ async function updateApplicationStatus(applicantId, status) {
     if (status === submission.status) return submission;
 
     await db.run('UPDATE application_submissions SET status = ? WHERE applicant_id = ?', [status, applicantId]);
-    if (status === 'admitted') {
-      await db.run(
-        `INSERT INTO application_status_notifications (applicant_id, status)
-         VALUES (?, ?)`,
-        [applicantId, status],
-      );
-    }
+    await db.run(
+      `INSERT INTO application_status_notifications (applicant_id, status)
+       VALUES (?, ?)`,
+      [applicantId, status],
+    );
     return getApplicationSubmission(applicantId);
   });
 }
@@ -397,15 +395,30 @@ async function deleteApplicationDocument(applicantId, documentId) {
 
 async function getProgramSelection(applicantId) {
   const selection = await db.get(
-    `SELECT program_id, intake, updated_at
-     FROM application_program_selections
-     WHERE applicant_id = ?`,
+    `SELECT program.id, program.level, program.name, program.duration, program.tuition,
+            selection.intake, selection.updated_at
+     FROM application_program_selections AS selection
+     JOIN programs AS program ON program.id = selection.program_id
+     WHERE selection.applicant_id = ?`,
     [applicantId],
   );
   if (!selection) return undefined;
-  const program = programCatalog.getProgram(selection.program_id);
-  if (!program) return undefined;
-  return { ...program, intake: selection.intake || '', updatedAt: selection.updated_at };
+  return { ...selection, intake: selection.intake || '', updatedAt: selection.updated_at };
+}
+
+async function isProgramIntakeAvailable(programId, intakeName) {
+  const available = await db.get(
+    `SELECT intake.name
+     FROM programs AS program
+     JOIN program_intakes AS availability ON availability.program_id = program.id
+     JOIN intakes AS intake ON intake.name = availability.intake_name
+     WHERE program.id = ? AND program.is_active = 1
+       AND intake.name = ? AND intake.is_open = 1 AND availability.is_available = 1
+       AND (intake.opening_date IS NULL OR date(intake.opening_date) <= date('now'))
+       AND (intake.closing_date IS NULL OR date(intake.closing_date) >= date('now'))`,
+    [programId, intakeName],
+  );
+  return Boolean(available);
 }
 
 async function saveProgramSelection(applicantId, updates) {
@@ -418,21 +431,23 @@ async function saveProgramSelection(applicantId, updates) {
   }
 
   const programId = clean(updates.programId);
-  const program = programCatalog.getProgram(programId);
-  if (!program) {
-    throw new ApplicationError(400, 'INVALID_PROGRAM_SELECTION', 'Choose a program from the list.', {
-      programId: 'Choose a program from the list.',
-    });
-  }
   const intake = clean(updates.intake);
-  if (!programCatalog.isIntake(intake)) {
-    throw new ApplicationError(400, 'INVALID_PROGRAM_SELECTION', 'Choose an intake from the list.', {
-      intake: 'Choose March or August.',
-    });
-  }
-
   return db.transaction(async () => {
     await assertApplicationDraft(applicantId);
+    const program = await db.get(
+      'SELECT id, level FROM programs WHERE id = ? AND is_active = 1',
+      [programId],
+    );
+    if (!program) {
+      throw new ApplicationError(400, 'INVALID_PROGRAM_SELECTION', 'Choose a program from the list.', {
+        programId: 'Choose a program from the list.',
+      });
+    }
+    if (!await isProgramIntakeAvailable(program.id, intake)) {
+      throw new ApplicationError(400, 'INVALID_PROGRAM_SELECTION', 'Choose an intake from the list.', {
+        intake: 'Choose an intake currently accepting applications for this program.',
+      });
+    }
     const [profile, applicant] = await Promise.all([
       getApplicationProfile(applicantId),
       db.get('SELECT other_names, surname, date_of_birth, sex FROM applicants WHERE id = ?', [applicantId]),
@@ -480,93 +495,111 @@ async function saveProgramSelection(applicantId, updates) {
 }
 
 async function submitApplication(applicantId) {
-  return db.transaction(async () => {
-    await assertApplicationDraft(applicantId);
-    const [profile, programSelection, documents, applicant] = await Promise.all([
-      getApplicationProfile(applicantId),
-      getProgramSelection(applicantId),
-      listApplicationDocuments(applicantId),
-      db.get(
-        `SELECT application_number, created_at, other_names, surname, date_of_birth, sex
-         FROM applicants WHERE id = ?`,
-        [applicantId],
-      ),
-    ]);
-    const requiredFields = {
-      firstName: (profile && profile.first_name) || (applicant && applicant.other_names) || '',
-      lastName: (profile && profile.last_name) || (applicant && applicant.surname) || '',
-      idNumber: (profile && profile.id_number) || '',
-      countryOfBirth: (profile && profile.country_of_birth) || '',
-      dateOfBirth: (profile && profile.date_of_birth) || (applicant && applicant.date_of_birth) || '',
-      gender: (profile && profile.gender) || (applicant && applicant.sex) || '',
-      physicalAddress: (profile && profile.physical_address) || '',
-      nextOfKinName: (profile && profile.next_of_kin_name) || '',
-      nextOfKinContact: (profile && profile.next_of_kin_contact) || '',
-    };
-    const errors = {};
-    for (const [field, value] of Object.entries(requiredFields)) {
-      if (!String(value).trim()) {
-        errors[field] = 'Complete this required field before submitting.';
-      } else {
-        const validationError = validateField(field, value);
-        if (validationError) errors[field] = validationError;
+  try {
+    return await db.transaction(async () => {
+      await assertApplicationDraft(applicantId);
+      const [profile, programSelection, documents, applicant] = await Promise.all([
+        getApplicationProfile(applicantId),
+        getProgramSelection(applicantId),
+        listApplicationDocuments(applicantId),
+        db.get(
+          `SELECT application_number, created_at, other_names, surname, date_of_birth, sex
+           FROM applicants WHERE id = ?`,
+          [applicantId],
+        ),
+      ]);
+      if (programSelection && !await isProgramIntakeAvailable(programSelection.id, programSelection.intake)) {
+        throw new ApplicationError(
+          409,
+          'INTAKE_CLOSED',
+          'Applications are no longer open for your selected program and intake. Contact admissions for help.',
+          { programSelection: 'This intake is closed for new submissions.' },
+        );
       }
-    }
+      const requiredFields = {
+        firstName: (profile && profile.first_name) || (applicant && applicant.other_names) || '',
+        lastName: (profile && profile.last_name) || (applicant && applicant.surname) || '',
+        idNumber: (profile && profile.id_number) || '',
+        countryOfBirth: (profile && profile.country_of_birth) || '',
+        dateOfBirth: (profile && profile.date_of_birth) || (applicant && applicant.date_of_birth) || '',
+        gender: (profile && profile.gender) || (applicant && applicant.sex) || '',
+        physicalAddress: (profile && profile.physical_address) || '',
+        nextOfKinName: (profile && profile.next_of_kin_name) || '',
+        nextOfKinContact: (profile && profile.next_of_kin_contact) || '',
+      };
+      const errors = {};
+      for (const [field, value] of Object.entries(requiredFields)) {
+        if (!String(value).trim()) {
+          errors[field] = 'Complete this required field before submitting.';
+        } else {
+          const validationError = validateField(field, value);
+          if (validationError) errors[field] = validationError;
+        }
+      }
 
-    let arrangements = [];
-    try {
-      arrangements = JSON.parse((profile && profile.training_arrangements) || '[]');
-    } catch (error) {
-      errors.trainingArrangements = 'Choose at least one training time or arrangement.';
-    }
-    const selectedProgramArrangement = programSelection
-      ? TRAINING_ARRANGEMENTS_BY_LEVEL[programSelection.level]
-      : undefined;
-    if (!Array.isArray(arrangements) || !selectedProgramArrangement
-      || !arrangements.includes(selectedProgramArrangement)
-      || arrangements.some((item) => !TRAINING_ARRANGEMENTS.includes(item)
-        || (item !== selectedProgramArrangement && item !== 'By Correspondence'))) {
-      errors.trainingArrangements = 'Your training arrangement must match your selected study level.';
-    }
-    if (!programSelection || !programSelection.intake) {
-      errors.programSelection = 'Choose and save a program and intake.';
-    }
-    if (!profile || !profile.has_passport_photo) {
-      errors.passportPhoto = 'Upload a passport photo.';
-    }
-    if (!documents.some((document) => document.category === 'transcript')) {
-      errors.transcript = 'Upload at least one academic transcript.';
-    }
-    if (!documents.some((document) => document.category === 'identity')) {
-      errors.identity = 'Upload a National ID or passport.';
-    }
-    if (Object.keys(errors).length) {
-      throw new ApplicationError(
-        400,
-        'APPLICATION_INCOMPLETE',
-        'Complete all required application details and documents before submitting.',
-        errors,
+      let arrangements = [];
+      try {
+        arrangements = JSON.parse((profile && profile.training_arrangements) || '[]');
+      } catch (error) {
+        errors.trainingArrangements = 'Choose at least one training time or arrangement.';
+      }
+      const selectedProgramArrangement = programSelection
+        ? TRAINING_ARRANGEMENTS_BY_LEVEL[programSelection.level]
+        : undefined;
+      if (!Array.isArray(arrangements) || !selectedProgramArrangement
+        || !arrangements.includes(selectedProgramArrangement)
+        || arrangements.some((item) => !TRAINING_ARRANGEMENTS.includes(item)
+          || (item !== selectedProgramArrangement && item !== 'By Correspondence'))) {
+        errors.trainingArrangements = 'Your training arrangement must match your selected study level.';
+      }
+      if (!programSelection || !programSelection.intake) {
+        errors.programSelection = 'Choose and save a program and intake.';
+      }
+      if (!profile || !profile.has_passport_photo) {
+        errors.passportPhoto = 'Upload a passport photo.';
+      }
+      if (!documents.some((document) => document.category === 'transcript')) {
+        errors.transcript = 'Upload at least one academic transcript.';
+      }
+      if (!documents.some((document) => document.category === 'identity')) {
+        errors.identity = 'Upload a National ID or passport.';
+      }
+      if (Object.keys(errors).length) {
+        throw new ApplicationError(
+          400,
+          'APPLICATION_INCOMPLETE',
+          'Complete all required application details and documents before submitting.',
+          errors,
+        );
+      }
+
+      if (!applicant.application_number) {
+        const createdYear = String(applicant.created_at || '').slice(0, 4);
+        const year = /^\d{4}$/.test(createdYear) ? createdYear : String(new Date().getUTCFullYear());
+        const applicationNumber = `EAIMS-${year}-${String(applicantId).padStart(6, '0')}`;
+        await db.run('UPDATE applicants SET application_number = ? WHERE id = ?', [applicationNumber, applicantId]);
+      }
+      await db.run(
+        `INSERT INTO application_submissions (applicant_id, status)
+         VALUES (?, 'submitted')`,
+        [applicantId],
+      );
+      await db.run(
+        `INSERT INTO application_status_notifications (applicant_id, status)
+         VALUES (?, 'submitted')`,
+        [applicantId],
+      );
+      return getApplicationSubmission(applicantId);
+    });
+  } catch (error) {
+    if (error instanceof ApplicationError && error.code !== 'APPLICATION_ALREADY_SUBMITTED') {
+      await db.run(
+        'INSERT INTO application_submission_failures (applicant_id, failure_code) VALUES (?, ?)',
+        [applicantId, error.code],
       );
     }
-
-    if (!applicant.application_number) {
-      const createdYear = String(applicant.created_at || '').slice(0, 4);
-      const year = /^\d{4}$/.test(createdYear) ? createdYear : String(new Date().getUTCFullYear());
-      const applicationNumber = `EAIMS-${year}-${String(applicantId).padStart(6, '0')}`;
-      await db.run('UPDATE applicants SET application_number = ? WHERE id = ?', [applicationNumber, applicantId]);
-    }
-    await db.run(
-      `INSERT INTO application_submissions (applicant_id, status)
-       VALUES (?, 'submitted')`,
-      [applicantId],
-    );
-    await db.run(
-      `INSERT INTO application_status_notifications (applicant_id, status)
-       VALUES (?, 'submitted')`,
-      [applicantId],
-    );
-    return getApplicationSubmission(applicantId);
-  });
+    throw error;
+  }
 }
 
 module.exports = {
@@ -575,6 +608,7 @@ module.exports = {
   MAX_APPLICATION_DOCUMENT_BYTES,
   APPLICATION_DOCUMENT_CATEGORIES,
   APPLICATION_DOCUMENT_MIME_TYPES,
+  TRAINING_ARRANGEMENTS_BY_LEVEL,
   getApplicationProfile,
   getApplicationSubmission,
   getApplicationStatusNotifications,
@@ -588,8 +622,43 @@ module.exports = {
   saveApplicationDocument,
   getApplicationDocument,
   deleteApplicationDocument,
-  getPrograms: programCatalog.getPrograms,
-  getIntakes: programCatalog.getIntakes,
+  async getPrograms() {
+    const rows = await db.all(
+      `SELECT program.id, program.level, program.name, program.duration, program.tuition,
+              GROUP_CONCAT(intake.name, '||') AS available_intakes
+       FROM programs AS program
+       JOIN program_intakes AS availability ON availability.program_id = program.id
+       JOIN intakes AS intake ON intake.name = availability.intake_name
+       WHERE program.is_active = 1 AND availability.is_available = 1 AND intake.is_open = 1
+         AND (intake.opening_date IS NULL OR date(intake.opening_date) <= date('now'))
+         AND (intake.closing_date IS NULL OR date(intake.closing_date) >= date('now'))
+       GROUP BY program.id
+       ORDER BY program.sort_order,
+         CASE program.level
+           WHEN 'Short courses' THEN 1 WHEN 'Diploma' THEN 2 WHEN 'Certificate' THEN 3 ELSE 4 END,
+         program.name COLLATE NOCASE`,
+    );
+    return rows.map((program) => ({
+      id: program.id,
+      level: program.level,
+      name: program.name,
+      duration: program.duration,
+      tuition: program.tuition,
+      availableIntakes: program.available_intakes ? program.available_intakes.split('||') : [],
+    }));
+  },
+  async getIntakes() {
+    return db.all(
+      `SELECT DISTINCT intake.name
+       FROM intakes AS intake
+       JOIN program_intakes AS availability ON availability.intake_name = intake.name
+       JOIN programs AS program ON program.id = availability.program_id
+       WHERE intake.is_open = 1 AND availability.is_available = 1 AND program.is_active = 1
+         AND (intake.opening_date IS NULL OR date(intake.opening_date) <= date('now'))
+         AND (intake.closing_date IS NULL OR date(intake.closing_date) >= date('now'))
+       ORDER BY intake.name COLLATE NOCASE`,
+    ).then((rows) => rows.map((row) => row.name));
+  },
   getProgramSelection,
   saveProgramSelection,
   submitApplication,

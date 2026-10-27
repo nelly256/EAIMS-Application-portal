@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Support agent sign in | EAIMS</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/css/chatbot.css" />
+</head>
+<body class="support-page">
+  <main class="support-login-card">
+    <a class="support-brand" href="/">EAIMS Admissions Support</a>
+    <h1>Support agent sign in</h1>
+    <p>Sign in with the support account provided by your portal administrator.</p>
+    <form id="support-login-form">
+      <label for="support-email">Email address</label>
+      <input id="support-email" name="email" type="email" autocomplete="username" maxlength="254" required />
+      <label for="support-password">Password</label>
+      <input id="support-password" name="password" type="password" autocomplete="current-password" required />
+      <button type="submit">Sign in</button>
+      <p id="support-login-message" class="support-feedback" role="status"></p>
+    </form>
+  </main>
+  <script src="/js/support-login.js" defer></script>
+</body>
+</html>

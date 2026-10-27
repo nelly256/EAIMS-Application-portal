@@ -10,13 +10,17 @@
     element.classList.add(`is-${state}`);
   }
 
-  const applicationStatuses = ['submitted', 'admitted'];
+  const applicationStatuses = ['submitted', 'in_review', 'approved', 'admitted'];
   const statusLabels = {
     submitted: 'Submitted',
+    in_review: 'In review',
+    approved: 'Approved',
     admitted: 'Admitted',
   };
   const statusMessages = {
     submitted: 'Your application has been submitted successfully.',
+    in_review: 'Your application is being reviewed by admissions.',
+    approved: 'Your application has been approved.',
     admitted: 'Congratulations! Your admission has been confirmed.',
   };
 
@@ -29,9 +33,7 @@
       const notifications = payload.data.notifications || { items: [] };
       const applicationStatus = submission && submission.status;
       const isSubmitted = Boolean(submission);
-      const journeyStatus = isSubmitted
-        ? applicationStatus === 'admitted' ? 'admitted' : 'submitted'
-        : null;
+      const journeyStatus = isSubmitted ? applicationStatus : null;
       const statusIndex = applicationStatuses.indexOf(journeyStatus);
       const values = [
         profile.firstName,
@@ -109,6 +111,8 @@
 
       const statusSteps = [
         ['timelineSubmitted', 'timelineSubmittedStatus'],
+        ['timelineInReview', 'timelineInReviewStatus'],
+        ['timelineApproved', 'timelineApprovedStatus'],
         ['timelineAdmitted', 'timelineAdmittedStatus'],
       ];
       statusSteps.forEach(([stepId, labelId], index) => {
@@ -123,6 +127,12 @@
       document.getElementById('timelineSubmittedText').textContent = isSubmitted
         ? `Your application was submitted successfully${submission.submittedAt ? ` on ${new Date(submission.submittedAt).toLocaleString()}` : ''}.`
         : 'Submit your completed application for admissions review.';
+      document.getElementById('timelineInReviewText').textContent = ['in_review', 'approved', 'admitted'].includes(applicationStatus)
+        ? statusMessages.in_review
+        : 'Admissions staff will review your application.';
+      document.getElementById('timelineApprovedText').textContent = ['approved', 'admitted'].includes(applicationStatus)
+        ? statusMessages.approved
+        : 'An approval update will appear here when available.';
       document.getElementById('timelineAdmittedText').textContent = applicationStatus === 'admitted'
         ? statusMessages.admitted
         : 'Your admission confirmation will appear here when available.';

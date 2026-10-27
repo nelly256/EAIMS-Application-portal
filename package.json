@@ -8,10 +8,14 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "migrate": "node src/db.js migrate",
-    "test": "node --test"
+    "admin:create": "node scripts/create-admin.js",
+    "db:backup": "node scripts/backup-database.js",
+    "db:verify-backup": "node scripts/verify-database-backup.js",
+    "support-agent:create": "node scripts/create-support-agent.js",
+    "test": "node --test \"test/*.test.js\""
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.17.0"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

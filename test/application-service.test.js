@@ -139,8 +139,8 @@ describe('application profile service', () => {
     const status = await updateApplicationStatus(applicantId, 'in_review');
     assert.equal(status.status, 'in_review');
     const notifications = await getApplicationStatusNotifications(applicantId);
-    assert.deepEqual(notifications.items.map((item) => item.status), ['submitted']);
-    assert.equal(notifications.unreadCount, 1);
+    assert.deepEqual(notifications.items.map((item) => item.status), ['in_review', 'submitted']);
+    assert.equal(notifications.unreadCount, 2);
   });
 
   test('rejects invalid profile fields without saving them', async () => {
@@ -321,7 +321,7 @@ describe('application profile service', () => {
   });
 
   test('provides the listed programs and saves one selection per applicant', async () => {
-    const programs = getPrograms();
+    const programs = await getPrograms();
     assert.ok(programs.length > 0);
     assert.ok(programs.some((program) => program.level === 'Diploma'));
     assert.ok(programs.some((program) => program.level === 'Certificate'));
@@ -435,6 +435,11 @@ describe('application profile service', () => {
         && Boolean(error.fields.programSelection)
         && Boolean(error.fields.transcript),
     );
+    const failedAttempt = await db.get(
+      'SELECT failure_code FROM application_submission_failures WHERE applicant_id = ? ORDER BY id DESC LIMIT 1',
+      [applicantId],
+    );
+    assert.equal(failedAttempt.failure_code, 'APPLICATION_INCOMPLETE');
     assert.equal(await getApplicationSubmission(applicantId), undefined);
 
     await saveApplicationProfile(applicantId, {
@@ -449,7 +454,7 @@ describe('application profile service', () => {
       nextOfKinContact: '+256 700 111 222',
       trainingArrangements: ['Online'],
     });
-    await saveProgramSelection(applicantId, { programId: getPrograms()[0].id, intake: 'March' });
+    await saveProgramSelection(applicantId, { programId: (await getPrograms())[0].id, intake: 'March' });
     await savePassportPhoto(applicantId, Buffer.from([0xff, 0xd8, 0xff, 0x00]), 'image/jpeg');
     await saveApplicationDocument(applicantId, 'transcript', Buffer.from('%PDF-1.7 transcript'), 'application/pdf', 'transcript.pdf');
     const identity = await saveApplicationDocument(
@@ -498,17 +503,17 @@ describe('application profile service', () => {
       (error) => error instanceof ApplicationError && error.code === 'APPLICATION_STATUS_REGRESSION',
     );
     const notifications = await getApplicationStatusNotifications(applicantId);
-    assert.deepEqual(notifications.items.map((item) => item.status), ['submitted']);
-    assert.equal(notifications.unreadCount, 1);
-    assert.equal((await markApplicationStatusNotificationsRead(applicantId)).updatedCount, 1);
+    assert.deepEqual(notifications.items.map((item) => item.status), ['in_review', 'submitted']);
+    assert.equal(notifications.unreadCount, 2);
+    assert.equal((await markApplicationStatusNotificationsRead(applicantId)).updatedCount, 2);
     assert.equal((await getApplicationStatusNotifications(applicantId)).unreadCount, 0);
     assert.equal((await updateApplicationStatus(applicantId, 'approved')).status, 'approved');
     assert.equal((await updateApplicationStatus(applicantId, 'admitted')).status, 'admitted');
     const finalNotifications = await getApplicationStatusNotifications(applicantId);
-    assert.deepEqual(finalNotifications.items.map((item) => item.status), ['admitted', 'submitted']);
-    assert.equal(finalNotifications.unreadCount, 1);
+    assert.deepEqual(finalNotifications.items.map((item) => item.status), ['admitted', 'approved', 'in_review', 'submitted']);
+    assert.equal(finalNotifications.unreadCount, 2);
     await assert.rejects(
-      saveProgramSelection(applicantId, { programId: getPrograms()[1].id, intake: 'August' }),
+      saveProgramSelection(applicantId, { programId: (await getPrograms())[1].id, intake: 'August' }),
       (error) => error instanceof ApplicationError && error.code === 'APPLICATION_ALREADY_SUBMITTED',
     );
     await assert.rejects(

@@ -441,6 +441,8 @@
       radio.setAttribute('aria-label', `Select ${program.name}`);
       radio.addEventListener('change', () => {
         pendingProgramId = program.id;
+        if (!program.availableIntakes.includes(pendingIntake)) pendingIntake = '';
+        renderIntakeCards(pendingIntake);
         programTableBody.querySelectorAll('tr').forEach((item) => {
           item.classList.toggle('is-selected', item.querySelector('input[type="radio"]').checked);
         });
@@ -448,7 +450,14 @@
       });
       selectCell.appendChild(radio);
       const nameCell = document.createElement('td');
-      nameCell.textContent = program.name;
+      const name = document.createElement('strong');
+      name.textContent = program.name;
+      nameCell.appendChild(name);
+      if (program.eligibility) {
+        const eligibility = document.createElement('small');
+        eligibility.textContent = `Eligibility: ${program.eligibility}`;
+        nameCell.appendChild(eligibility);
+      }
       const durationCell = document.createElement('td');
       durationCell.textContent = program.duration;
       const tuitionCell = document.createElement('td');
@@ -464,7 +473,11 @@
 
   function renderIntakeCards(selectedIntake = '') {
     intakeCards.replaceChildren();
-    intakes.forEach((intake) => {
+    const program = programs.find((item) => item.id === pendingProgramId);
+    const availableIntakes = program
+      ? intakes.filter((intake) => program.availableIntakes.includes(intake))
+      : [];
+    availableIntakes.forEach((intake) => {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'intake-card';
@@ -493,6 +506,7 @@
       });
       intakeCards.appendChild(card);
     });
+    if (selectedIntake && !availableIntakes.includes(selectedIntake)) pendingIntake = '';
   }
 
   function updateProgramChoice() {

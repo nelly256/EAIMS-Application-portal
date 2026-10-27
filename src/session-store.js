@@ -56,6 +56,10 @@ class SqliteSessionStore extends session.Store {
     db.run('DELETE FROM sessions WHERE expires_at <= ?', [Date.now()]).catch(() => {});
   }
 
+  close() {
+    clearInterval(this.cleanupTimer);
+  }
+
   async length(callback) {
     try {
       const row = await db.get('SELECT COUNT(*) AS count FROM sessions');
