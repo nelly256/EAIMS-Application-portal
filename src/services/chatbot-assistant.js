@@ -40,8 +40,8 @@ async function getKnowledge() {
     },
     {
       title: 'How to apply and submission requirements',
-      text: 'Applicants register an account, verify it, sign in, select one program and an intake, complete the required application profile, provide the required documents and submit. Required profile details include legal names, identity number, country and date of birth, gender, physical address, next-of-kin name and contact. The application requires a training arrangement, a passport photo, at least one academic transcript, and a National ID or passport. A reason for the course and additional documents can also be provided.',
-      answer: 'To apply, register and verify your account, then sign in and complete My Application. Choose one program and intake; complete your personal and next-of-kin details and the required training arrangement. Upload a passport photo, at least one academic transcript, and a National ID or passport. You can also provide a reason for the course and any additional documents. Submit when all required sections are complete.',
+      text: 'Applicants register an account, verify it, sign in, select one program and an intake, complete the required application profile, provide the required documents and submit. Required profile details include legal names, identity number, country and date of birth, gender, physical address, sponsor/guardian name and contact. The application requires a training arrangement, a passport photo, at least one academic transcript, and a National ID or passport. A reason for the course and additional documents can also be provided.',
+      answer: 'To apply, register and verify your account, then sign in and complete My Application. Choose one program and intake; complete your personal and sponsor/guardian details and the required training arrangement. Upload a passport photo, at least one academic transcript, and a National ID or passport. You can also provide a reason for the course and any additional documents. Submit when all required sections are complete.',
     },
     {
       title: 'Study arrangements and schedules',

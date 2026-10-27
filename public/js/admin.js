@@ -412,8 +412,8 @@
       appendRecordField(grid, 'ID / passport', profile?.id_number);
       appendRecordField(grid, 'Country of birth', profile?.country_of_birth);
       appendRecordField(grid, 'Address', profile?.physical_address);
-      appendRecordField(grid, 'Next of kin', profile?.next_of_kin_name);
-      appendRecordField(grid, 'Next-of-kin contact', profile?.next_of_kin_contact);
+      appendRecordField(grid, 'Sponsor/guardian', profile?.next_of_kin_name);
+      appendRecordField(grid, 'Sponsor/guardian contact', profile?.next_of_kin_contact);
       appendRecordField(grid, 'Programme', programSelection?.name);
       appendRecordField(grid, 'Intake', programSelection?.intake);
       appendRecordField(grid, 'Registered', formatDate(applicant.registeredAt));

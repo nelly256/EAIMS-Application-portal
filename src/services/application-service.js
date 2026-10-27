@@ -70,7 +70,7 @@ function validateField(field, value) {
     return cleaned.length >= 5 ? '' : 'Enter a complete physical address.';
   }
   if (field === 'nextOfKinName') {
-    return validName(cleaned) ? '' : 'Enter a valid next-of-kin name.';
+    return validName(cleaned) ? '' : 'Enter a valid sponsor/guardian name.';
   }
   if (field === 'nextOfKinContact') {
     const digits = cleaned.replace(/\D/g, '');
