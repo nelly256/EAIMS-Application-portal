@@ -24,6 +24,183 @@
     admitted: 'Congratulations! Your admission has been confirmed.',
   };
 
+  const informationRequestPanel = document.getElementById('informationRequestsPanel');
+  const informationRequestList = document.getElementById('informationRequestList');
+
+  function appendInformationRequestForm(card, request) {
+    const form = document.createElement('form');
+    form.className = 'information-request-form';
+    form.noValidate = false;
+    request.requestedItems.forEach((item, index) => {
+      const field = document.createElement('div');
+      field.className = 'information-request-field';
+      const label = document.createElement('label');
+      label.textContent = item.label || item.key;
+      if (item.type === 'field') {
+        const input = document.createElement('textarea');
+        input.id = `information-${request.id}-${index}`;
+        input.required = true;
+        input.maxLength = 4000;
+        input.dataset.requestField = item.key;
+        label.htmlFor = input.id;
+        field.append(label, input);
+      } else {
+        const input = document.createElement('input');
+        input.id = `information-${request.id}-${index}`;
+        input.type = 'file';
+        input.multiple = true;
+        input.required = true;
+        input.accept = 'application/pdf,image/jpeg,image/png';
+        input.dataset.documentInput = '';
+        input.dataset.documentKey = item.key;
+        label.htmlFor = input.id;
+        field.append(label, input);
+        const help = document.createElement('small');
+        help.textContent = 'PDF, JPEG or PNG; up to 10 MB per file.';
+        field.append(help);
+      }
+      form.append(field);
+    });
+
+    const message = document.createElement('p');
+    message.className = 'information-request-form-message';
+    message.setAttribute('role', 'status');
+    message.hidden = true;
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.className = 'information-request-submit';
+    submit.textContent = 'Submit response';
+    form.append(message, submit);
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      message.hidden = true;
+      submit.disabled = true;
+      submit.textContent = 'Submitting...';
+      try {
+        const values = {};
+        form.querySelectorAll('[data-request-field]').forEach((input) => {
+          values[input.dataset.requestField] = input.value.trim();
+        });
+        const documentsByKey = {};
+        for (const input of form.querySelectorAll('[data-document-input]')) {
+          documentsByKey[input.dataset.documentKey] = [];
+          for (const file of input.files) {
+            const query = new URLSearchParams({ name: file.name });
+            const upload = await fetch(
+              `/api/application/information-requests/${encodeURIComponent(request.id)}/documents?${query}`,
+              {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                  Accept: 'application/json',
+                  'Content-Type': file.type,
+                  'X-CSRF-Token': await window.EaimsAuth.getCsrfToken(),
+                },
+                body: file,
+              },
+            );
+            const uploadPayload = await upload.json().catch(() => ({}));
+            if (!upload.ok) {
+              throw new Error(uploadPayload.error?.message || `Unable to upload ${file.name}.`);
+            }
+            documentsByKey[input.dataset.documentKey].push(String(uploadPayload.data.document.id));
+          }
+        }
+        await window.EaimsAuth.request(
+          `/api/application/information-requests/${encodeURIComponent(request.id)}/responses`,
+          {
+            method: 'POST',
+            body: JSON.stringify({ values, documentsByKey }),
+          },
+        );
+        await loadInformationRequests(true);
+      } catch (requestError) {
+        if (requestError.status === 401 || requestError.status === 403) {
+          window.location.assign('/login.html');
+          return;
+        }
+        if (requestError.status === 409) {
+          await loadInformationRequests(true);
+          return;
+        }
+        message.textContent = requestError.message;
+        message.className = 'information-request-form-message form-message form-message-error';
+        message.hidden = false;
+        submit.disabled = false;
+        submit.textContent = 'Submit response';
+      }
+    });
+    card.append(form);
+  }
+
+  function renderInformationRequests(requests) {
+    informationRequestList.replaceChildren();
+    if (!requests.length) {
+      const empty = document.createElement('p');
+      empty.className = 'information-request-empty';
+      empty.textContent = 'Admissions has not requested any additional information.';
+      informationRequestList.append(empty);
+      return;
+    }
+
+    requests.forEach((request) => {
+      const card = document.createElement('article');
+      card.className = 'information-request-card';
+      const heading = document.createElement('h3');
+      heading.textContent = 'Admissions request';
+      const message = document.createElement('p');
+      message.className = 'information-request-message';
+      message.textContent = request.applicantMessage;
+      card.append(heading, message);
+
+      const details = document.createElement('p');
+      details.className = 'information-request-details';
+      const dueDate = request.dueAt ? new Date(request.dueAt) : null;
+      details.textContent = dueDate && !Number.isNaN(dueDate.getTime())
+        ? `Requested ${new Date(request.createdAt).toLocaleDateString()} · Due ${dueDate.toLocaleDateString()}`
+        : `Requested ${new Date(request.createdAt).toLocaleDateString()}`;
+      card.append(details);
+
+      if (request.response) {
+        const status = document.createElement('p');
+        status.className = `information-request-status is-${request.response.deliveryStatus}`;
+        if (request.response.deliveryStatus === 'delivered') {
+          status.textContent = 'Your response was received by admissions.';
+        } else if (request.response.deliveryStatus === 'failed') {
+          status.textContent = 'We could not deliver your response. Please contact admissions for help.';
+        } else {
+          status.textContent = 'Your response is saved and waiting to be sent to admissions.';
+        }
+        card.append(status);
+      } else {
+        appendInformationRequestForm(card, request);
+      }
+      informationRequestList.append(card);
+    });
+  }
+
+  async function loadInformationRequests(isSubmitted) {
+    if (!isSubmitted) {
+      informationRequestPanel.hidden = true;
+      return;
+    }
+    informationRequestPanel.hidden = false;
+    try {
+      const payload = await window.EaimsAuth.request('/api/application/information-requests');
+      renderInformationRequests(payload.data.requests || []);
+    } catch (requestError) {
+      if (requestError.status === 401 || requestError.status === 403) {
+        window.location.assign('/login.html');
+        return;
+      }
+      informationRequestList.replaceChildren();
+      const message = document.createElement('p');
+      message.className = 'information-request-empty form-message form-message-error';
+      message.textContent = requestError.message;
+      informationRequestList.append(message);
+    }
+  }
+
   async function loadTracking() {
     try {
       const payload = await window.EaimsAuth.request('/api/application/profile');
@@ -165,6 +342,7 @@
         }
       }
       content.hidden = false;
+      loadInformationRequests(isSubmitted);
     } catch (requestError) {
       if (requestError.status === 401 || requestError.status === 403) {
         window.location.assign('/login.html');

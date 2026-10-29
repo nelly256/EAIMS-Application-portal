@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const db = require('../db');
 const { COUNTRY_CODES, validDate, validName } = require('../validation');
 
@@ -155,7 +156,8 @@ async function getApplicationProfile(applicantId) {
           physical_address, next_of_kin_name, next_of_kin_contact,
           training_arrangements, employment_history, course_reason,
           passport_photo_mime, updated_at,
-            CASE WHEN passport_photo IS NULL THEN 0 ELSE 1 END AS has_passport_photo
+            CASE WHEN passport_photo IS NULL THEN 0 ELSE 1 END AS has_passport_photo,
+            COALESCE(length(passport_photo), 0) AS passport_photo_size
      FROM application_profiles WHERE applicant_id = ?`,
     [applicantId],
   );
@@ -164,7 +166,8 @@ async function getApplicationProfile(applicantId) {
 async function getApplicationSubmission(applicantId) {
   return db.get(
     `SELECT submission.status, submission.submitted_at AS submittedAt,
-            applicant.application_number AS applicationNumber
+            applicant.application_number AS applicationNumber,
+            submission.source_application_id AS sourceApplicationId
      FROM application_submissions AS submission
      JOIN applicants AS applicant ON applicant.id = submission.applicant_id
      WHERE submission.applicant_id = ?`,
@@ -374,6 +377,49 @@ async function saveApplicationDocument(applicantId, category, buffer, mimeType, 
   });
 }
 
+async function saveInformationRequestDocument(applicantId, requestId, buffer, mimeType, originalName) {
+  if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
+    throw documentUploadError('Choose a file to upload.', 'file');
+  }
+  if (buffer.length > MAX_APPLICATION_DOCUMENT_BYTES) {
+    throw documentUploadError('Choose a document smaller than 10 MB.', 'file');
+  }
+  if (!APPLICATION_DOCUMENT_MIME_TYPES.includes(mimeType) || !hasValidDocumentSignature(buffer, mimeType)) {
+    throw documentUploadError('Upload a valid PDF, JPEG, or PNG document.', 'file');
+  }
+  const fileName = cleanDocumentFileName(originalName);
+  return db.transaction(async () => {
+    const request = await db.get(
+      `SELECT request.id
+       FROM acmis_information_requests AS request
+       WHERE request.applicant_id = ? AND request.acmis_request_id = ?`,
+      [applicantId, requestId],
+    );
+    if (!request) {
+      throw new ApplicationError(404, 'INFORMATION_REQUEST_NOT_FOUND', 'The information request was not found.');
+    }
+    const response = await db.get(
+      'SELECT id FROM acmis_information_responses WHERE request_id = ?',
+      [request.id],
+    );
+    if (response) {
+      throw new ApplicationError(409, 'INFORMATION_RESPONSE_ALREADY_SUBMITTED', 'A response has already been submitted for this request.');
+    }
+    const result = await db.run(
+      `INSERT INTO acmis_supplemental_documents
+       (applicant_id, request_id, original_name, mime_type, file_size, file_data)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [applicantId, request.id, fileName, mimeType, buffer.length, buffer],
+    );
+    return {
+      id: result.id,
+      original_name: fileName,
+      mime_type: mimeType,
+      file_size: buffer.length,
+    };
+  });
+}
+
 async function getApplicationDocument(applicantId, documentId) {
   return db.get(
     `SELECT id, category, original_name, mime_type, file_size, file_data, created_at
@@ -503,7 +549,8 @@ async function submitApplication(applicantId) {
         getProgramSelection(applicantId),
         listApplicationDocuments(applicantId),
         db.get(
-          `SELECT application_number, created_at, other_names, surname, date_of_birth, sex
+          `SELECT application_number, created_at, other_names, surname, date_of_birth, sex,
+                  email, phone, nationality
            FROM applicants WHERE id = ?`,
           [applicantId],
         ),
@@ -579,17 +626,33 @@ async function submitApplication(applicantId) {
         const applicationNumber = `EAIMS-${year}-${String(applicantId).padStart(6, '0')}`;
         await db.run('UPDATE applicants SET application_number = ? WHERE id = ?', [applicationNumber, applicantId]);
       }
+      const sourceApplicationId = crypto.randomUUID();
       await db.run(
-        `INSERT INTO application_submissions (applicant_id, status)
-         VALUES (?, 'submitted')`,
-        [applicantId],
+        `INSERT INTO application_submissions (applicant_id, status, source_application_id)
+         VALUES (?, 'submitted', ?)`,
+        [applicantId, sourceApplicationId],
       );
       await db.run(
         `INSERT INTO application_status_notifications (applicant_id, status)
          VALUES (?, 'submitted')`,
         [applicantId],
       );
-      return getApplicationSubmission(applicantId);
+      const submission = await getApplicationSubmission(applicantId);
+      const envelope = buildAcmisApplicationEnvelope({
+        applicantId,
+        applicant,
+        profile,
+        programSelection,
+        documents,
+        submission,
+      });
+      await db.run(
+        `INSERT INTO acmis_application_outbox
+         (applicant_id, source_application_id, payload_json)
+         VALUES (?, ?, ?)`,
+        [applicantId, sourceApplicationId, JSON.stringify(envelope)],
+      );
+      return submission;
     });
   } catch (error) {
     if (error instanceof ApplicationError && error.code !== 'APPLICATION_ALREADY_SUBMITTED') {
@@ -602,6 +665,141 @@ async function submitApplication(applicantId) {
   }
 }
 
+function buildAcmisApplicationEnvelope({
+  applicantId,
+  applicant,
+  profile,
+  programSelection,
+  documents,
+  submission,
+}) {
+  const parseJsonArray = (value) => {
+    try {
+      const parsed = JSON.parse(value || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+  const submittedAt = new Date(`${submission.submittedAt.replace(' ', 'T')}Z`);
+  const documentReferences = documents.map((document) => ({
+    sourceDocumentId: `portal-document-${document.id}`,
+    category: document.category,
+    fileName: document.original_name,
+    mediaType: document.mime_type,
+    sizeBytes: document.file_size,
+    uploadedAt: document.created_at,
+  }));
+  if (profile.has_passport_photo) {
+    documentReferences.push({
+      sourceDocumentId: `portal-${submission.sourceApplicationId}-passport-photo`,
+      category: 'passport_photo',
+      fileName: 'passport-photo',
+      mediaType: profile.passport_photo_mime,
+      sizeBytes: profile.passport_photo_size,
+    });
+  }
+  return {
+    sourceApplicantId: String(applicantId),
+    sourceApplicationId: submission.sourceApplicationId,
+    sourceApplicationNumber: submission.applicationNumber,
+    applicantEmail: applicant.email,
+    programCode: programSelection.id,
+    intakeCode: programSelection.intake,
+    submissionSnapshot: {
+      submittedAt: Number.isNaN(submittedAt.getTime())
+        ? submission.submittedAt
+        : submittedAt.toISOString(),
+      applicant: {
+        firstName: profile.first_name || applicant.other_names,
+        lastName: profile.last_name || applicant.surname,
+        email: applicant.email,
+        phone: applicant.phone,
+        nationality: applicant.nationality,
+        dateOfBirth: profile.date_of_birth || applicant.date_of_birth,
+        gender: profile.gender || applicant.sex,
+      },
+      profile: {
+        idNumber: profile.id_number,
+        countryOfBirth: profile.country_of_birth,
+        physicalAddress: profile.physical_address,
+        nextOfKin: {
+          name: profile.next_of_kin_name,
+          contact: profile.next_of_kin_contact,
+        },
+        trainingArrangements: parseJsonArray(profile.training_arrangements),
+        employmentHistory: parseJsonArray(profile.employment_history),
+        courseReason: profile.course_reason,
+      },
+      selectedProgram: {
+        programCode: programSelection.id,
+        programName: programSelection.name,
+        level: programSelection.level,
+        intakeCode: programSelection.intake,
+      },
+      documents: documentReferences,
+    },
+  };
+}
+
+async function queueExistingAcmisApplications() {
+  const submissions = await db.all(
+    `SELECT submission.applicant_id, submission.source_application_id
+     FROM application_submissions AS submission
+     LEFT JOIN acmis_application_outbox AS outbox
+       ON outbox.applicant_id = submission.applicant_id
+     WHERE outbox.id IS NULL`,
+  );
+  let queued = 0;
+  for (const submission of submissions) {
+    await db.transaction(async () => {
+      const existing = await db.get(
+        'SELECT id FROM acmis_application_outbox WHERE applicant_id = ?',
+        [submission.applicant_id],
+      );
+      if (existing) return;
+      const [profile, programSelection, documents, applicant, currentSubmission] = await Promise.all([
+        getApplicationProfile(submission.applicant_id),
+        getProgramSelection(submission.applicant_id),
+        listApplicationDocuments(submission.applicant_id),
+        db.get(
+          `SELECT application_number, other_names, surname, date_of_birth, sex,
+                  email, phone, nationality
+           FROM applicants WHERE id = ?`,
+          [submission.applicant_id],
+        ),
+        getApplicationSubmission(submission.applicant_id),
+      ]);
+      if (!profile || !programSelection || !applicant || !currentSubmission
+        || !currentSubmission.sourceApplicationId) {
+        const error = new Error('The submitted application is incomplete for ACMIS synchronization.');
+        error.code = 'APPLICATION_SNAPSHOT_UNAVAILABLE';
+        throw error;
+      }
+      const envelope = buildAcmisApplicationEnvelope({
+        applicantId: submission.applicant_id,
+        applicant,
+        profile,
+        programSelection,
+        documents,
+        submission: currentSubmission,
+      });
+      await db.run(
+        `INSERT OR IGNORE INTO acmis_application_outbox
+         (applicant_id, source_application_id, payload_json)
+         VALUES (?, ?, ?)`,
+        [
+          submission.applicant_id,
+          submission.source_application_id || currentSubmission.sourceApplicationId,
+          JSON.stringify(envelope),
+        ],
+      );
+      queued += 1;
+    });
+  }
+  return queued;
+}
+
 module.exports = {
   ApplicationError,
   MAX_PHOTO_BYTES,
@@ -611,6 +809,7 @@ module.exports = {
   TRAINING_ARRANGEMENTS_BY_LEVEL,
   getApplicationProfile,
   getApplicationSubmission,
+  queueExistingAcmisApplications,
   getApplicationStatusNotifications,
   markApplicationStatusNotificationsRead,
   updateApplicationStatus,
@@ -620,6 +819,7 @@ module.exports = {
   getPassportPhoto,
   listApplicationDocuments,
   saveApplicationDocument,
+  saveInformationRequestDocument,
   getApplicationDocument,
   deleteApplicationDocument,
   async getPrograms() {

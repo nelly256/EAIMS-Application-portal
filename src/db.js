@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const Database = require('sqlite3').Database;
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'eaims.db');
@@ -140,8 +141,99 @@ CREATE TABLE IF NOT EXISTS application_submissions (
   applicant_id INTEGER PRIMARY KEY,
   status TEXT NOT NULL CHECK (status IN ('submitted', 'in_review', 'approved', 'admitted')),
   submitted_at TEXT NOT NULL DEFAULT (datetime('now')),
+  source_application_id TEXT,
   FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS acmis_application_outbox (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  applicant_id INTEGER NOT NULL UNIQUE,
+  source_application_id TEXT NOT NULL UNIQUE,
+  payload_json TEXT,
+  delivery_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (delivery_status IN ('pending', 'sending', 'delivered', 'failed')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at TEXT NOT NULL DEFAULT (datetime('now')),
+  lease_until TEXT,
+  last_error_code TEXT,
+  acmis_application_id TEXT,
+  delivered_at TEXT,
+  next_request_sync_at TEXT,
+  request_sync_attempts INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_acmis_application_outbox_delivery
+ON acmis_application_outbox(delivery_status, next_attempt_at);
+
+CREATE INDEX IF NOT EXISTS idx_acmis_application_outbox_request_sync
+ON acmis_application_outbox(delivery_status, next_request_sync_at);
+
+CREATE TABLE IF NOT EXISTS acmis_information_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  applicant_id INTEGER NOT NULL,
+  source_application_id TEXT NOT NULL,
+  acmis_request_id TEXT NOT NULL UNIQUE,
+  requested_items_json TEXT NOT NULL,
+  applicant_message TEXT NOT NULL,
+  due_at TEXT,
+  created_at TEXT NOT NULL,
+  synced_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(applicant_id, acmis_request_id),
+  FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_acmis_information_requests_applicant
+ON acmis_information_requests(applicant_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS acmis_supplemental_documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  applicant_id INTEGER NOT NULL,
+  request_id INTEGER NOT NULL,
+  original_name TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  file_data BLOB NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE,
+  FOREIGN KEY (request_id) REFERENCES acmis_information_requests(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_acmis_supplemental_documents_owner
+ON acmis_supplemental_documents(applicant_id, request_id);
+
+CREATE TABLE IF NOT EXISTS acmis_document_access_audit (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_application_id TEXT NOT NULL,
+  source_document_id TEXT NOT NULL,
+  correlation_id TEXT NOT NULL,
+  result_code TEXT NOT NULL CHECK (result_code IN ('served', 'not_found')),
+  occurred_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_acmis_document_access_audit_application
+ON acmis_document_access_audit(source_application_id, occurred_at DESC);
+
+CREATE TABLE IF NOT EXISTS acmis_information_responses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  request_id INTEGER NOT NULL UNIQUE,
+  source_response_id TEXT NOT NULL UNIQUE,
+  values_json TEXT NOT NULL,
+  supplemental_document_ids_json TEXT NOT NULL,
+  submitted_at TEXT NOT NULL,
+  delivery_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (delivery_status IN ('pending', 'sending', 'delivered', 'failed')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at TEXT NOT NULL DEFAULT (datetime('now')),
+  lease_until TEXT,
+  last_error_code TEXT,
+  delivered_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (request_id) REFERENCES acmis_information_requests(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_acmis_information_responses_delivery
+ON acmis_information_responses(delivery_status, next_attempt_at);
 
 CREATE TABLE IF NOT EXISTS application_submission_failures (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -359,6 +451,24 @@ async function migrate() {
       await run('ALTER TABLE application_submissions_migrated RENAME TO application_submissions');
     });
   }
+  const submissionColumns = await all('PRAGMA table_info(application_submissions)');
+  if (!submissionColumns.some((column) => column.name === 'source_application_id')) {
+    await exec('ALTER TABLE application_submissions ADD COLUMN source_application_id TEXT');
+  }
+  const missingSourceApplicationIds = await all(
+    `SELECT applicant_id FROM application_submissions
+     WHERE source_application_id IS NULL OR trim(source_application_id) = ''`,
+  );
+  for (const submission of missingSourceApplicationIds) {
+    await run(
+      'UPDATE application_submissions SET source_application_id = ? WHERE applicant_id = ?',
+      [crypto.randomUUID(), submission.applicant_id],
+    );
+  }
+  await exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_application_submissions_source_application_id
+    ON application_submissions(source_application_id)
+  `);
   await exec(`
     INSERT INTO application_status_notifications (applicant_id, status, created_at)
     SELECT submission.applicant_id, submission.status, submission.submitted_at

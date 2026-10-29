@@ -41,9 +41,48 @@ const config = {
     timeoutMs: parseInt(process.env.SMS_TIMEOUT_MS, 10) || 10000,
   },
   appBaseUrl: process.env.APP_BASE_URL || 'http://localhost:3000',
+  acmis: {
+    apiBaseUrl: process.env.ACMIS_API_BASE_URL || '',
+    portalToken: process.env.ACMIS_PORTAL_TOKEN || '',
+    requestTimeoutMs: parseInt(process.env.ACMIS_REQUEST_TIMEOUT_MS, 10) || 10000,
+    syncIntervalMs: parseInt(process.env.ACMIS_SYNC_INTERVAL_MS, 10) || 30000,
+  },
 };
 
 function validateProductionConfig(settings = config) {
+  const acmisSettings = settings.acmis || {};
+  const acmisUrl = String(acmisSettings.apiBaseUrl || '').trim();
+  const acmisToken = String(acmisSettings.portalToken || '').trim();
+  const acmisTimeoutMs = Number(acmisSettings.requestTimeoutMs || 10000);
+  const acmisSyncIntervalMs = Number(acmisSettings.syncIntervalMs || 30000);
+  let parsedAcmisUrl;
+  if (!Number.isInteger(acmisTimeoutMs) || acmisTimeoutMs < 1000 || acmisTimeoutMs > 120000) {
+    throw new Error('ACMIS_REQUEST_TIMEOUT_MS must be between 1000 and 120000.');
+  }
+  if (!Number.isInteger(acmisSyncIntervalMs) || acmisSyncIntervalMs < 5000 || acmisSyncIntervalMs > 3600000) {
+    throw new Error('ACMIS_SYNC_INTERVAL_MS must be between 5000 and 3600000.');
+  }
+  if (Boolean(acmisUrl) !== Boolean(acmisToken)) {
+    throw new Error('Set both ACMIS_API_BASE_URL and ACMIS_PORTAL_TOKEN, or leave both empty.');
+  }
+  if (acmisUrl) {
+    try {
+      parsedAcmisUrl = new URL(acmisUrl);
+    } catch {
+      throw new Error('Set ACMIS_API_BASE_URL to a valid URL.');
+    }
+    if (!['http:', 'https:'].includes(parsedAcmisUrl.protocol)
+      || parsedAcmisUrl.username
+      || parsedAcmisUrl.password
+      || parsedAcmisUrl.search
+      || parsedAcmisUrl.hash) {
+      throw new Error('ACMIS_API_BASE_URL must be an HTTP(S) URL without credentials, query, or fragment.');
+    }
+    if (acmisToken.length < 32 || acmisToken.length > 4096) {
+      throw new Error('Set ACMIS_PORTAL_TOKEN to an integration token of 32 to 4096 characters.');
+    }
+  }
+
   if (settings.nodeEnv !== 'production') return;
 
   const sessionSecret = settings.sessionSecret.trim();
@@ -59,6 +98,9 @@ function validateProductionConfig(settings = config) {
   }
   if (appUrl.protocol !== 'https:' || ['localhost', '127.0.0.1', '[::1]'].includes(appUrl.hostname)) {
     throw new Error('APP_BASE_URL must use HTTPS and a public hostname in production.');
+  }
+  if (acmisUrl && parsedAcmisUrl.protocol !== 'https:') {
+    throw new Error('ACMIS_API_BASE_URL must use HTTPS in production.');
   }
 
   const hasGroqKey = Boolean(settings.chatbot.groqApiKey);

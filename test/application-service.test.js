@@ -136,6 +136,7 @@ describe('application profile service', () => {
     await db.run("INSERT INTO application_submissions (applicant_id, status) VALUES (?, 'submitted')", [applicantId]);
 
     await db.migrate();
+    assert.match((await getApplicationSubmission(applicantId)).sourceApplicationId, /^[0-9a-f-]{36}$/i);
     const status = await updateApplicationStatus(applicantId, 'in_review');
     assert.equal(status.status, 'in_review');
     const notifications = await getApplicationStatusNotifications(applicantId);
@@ -476,8 +477,20 @@ describe('application profile service', () => {
     const submission = await submitApplication(applicantId);
     assert.equal(submission.status, 'submitted');
     assert.match(submission.applicationNumber, /^EAIMS-\d{4}-\d{6}$/);
+    assert.match(submission.sourceApplicationId, /^[0-9a-f-]{36}$/i);
     assert.ok(submission.submittedAt);
     assert.equal((await getApplicationSubmission(applicantId)).status, 'submitted');
+    const acmisOutbox = await db.get(
+      'SELECT delivery_status, source_application_id, payload_json FROM acmis_application_outbox WHERE applicant_id = ?',
+      [applicantId],
+    );
+    assert.equal(acmisOutbox.delivery_status, 'pending');
+    assert.equal(acmisOutbox.source_application_id, submission.sourceApplicationId);
+    const acmisPayload = JSON.parse(acmisOutbox.payload_json);
+    assert.equal(acmisPayload.sourceApplicationNumber, submission.applicationNumber);
+    assert.equal(acmisPayload.programCode, (await getProgramSelection(applicantId)).id);
+    assert.equal(acmisPayload.submissionSnapshot.documents.some((document) => document.category === 'identity'), true);
+    assert.equal(acmisPayload.submissionSnapshot.documents.some((document) => document.category === 'passport_photo'), true);
 
     await assert.rejects(
       saveApplicationProfile(applicantId, { physicalAddress: 'Changed address' }),

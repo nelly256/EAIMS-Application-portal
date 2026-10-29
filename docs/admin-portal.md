@@ -38,3 +38,5 @@ Announcements are published in the applicant dashboard; this version does not se
 Rejected applicant submission attempts are recorded with the validation/error code and timestamp (not submitted field values) so staff can locate failed and incomplete submissions.
 
 Run `npm run migrate` to apply database changes explicitly; the server also runs migrations during startup.
+
+Portal-to-ACMIS application delivery and applicant information requests are documented in [ACMIS synchronization](./acmis-integration.md).

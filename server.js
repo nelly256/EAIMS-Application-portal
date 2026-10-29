@@ -11,12 +11,18 @@ const { requireAuth, requireVerified } = require('./src/middleware/auth');
 const { ensureCsrfToken, csrfProtection } = require('./src/middleware/csrf');
 const { testSmtpConnection } = require('./src/services/notifications');
 const applicationService = require('./src/services/application-service');
+const { createAcmisIntegration } = require('./src/services/acmis-integration');
+const { createAcmisDocumentAccess } = require('./src/services/acmis-document-access');
 const { COUNTRY_CODES } = require('./src/validation');
 const authRoutes = require('./src/routes/auth');
 const chatbotRoutes = require('./src/routes/chatbot');
 const supportRoutes = require('./src/routes/support');
 const adminRoutes = require('./src/routes/admin');
 const adminService = require('./src/services/admin-service');
+const acmisIntegration = createAcmisIntegration({ settings: config.acmis });
+const acmisDocumentAccess = createAcmisDocumentAccess({
+  token: config.acmis.portalToken,
+});
 
 const app = express();
 
@@ -133,6 +139,45 @@ app.use('/api/chat', chatbotRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
 
+app.get(
+  '/api/integrations/acmis/applications/:sourceApplicationId/documents/:sourceDocumentId',
+  acmisDocumentAccess.requireToken,
+  async (req, res, next) => {
+    try {
+      const sourceApplicationId = String(req.params.sourceApplicationId || '').trim();
+      const sourceDocumentId = String(req.params.sourceDocumentId || '').trim();
+      if (!sourceApplicationId || sourceApplicationId.length > 150
+        || !sourceDocumentId || sourceDocumentId.length > 150) {
+        return res.status(404).json({
+          ok: false,
+          error: { code: 'DOCUMENT_NOT_FOUND', message: 'The requested document was not found.' },
+        });
+      }
+      const document = await acmisDocumentAccess.getDocument(
+        sourceApplicationId,
+        sourceDocumentId,
+        req.get('X-Correlation-ID'),
+      );
+      if (!document) {
+        return res.status(404).json({
+          ok: false,
+          error: { code: 'DOCUMENT_NOT_FOUND', message: 'The requested document was not found.' },
+        });
+      }
+      const fallbackName = document.original_name.replace(/[^\x20-\x7e]|["\\/]/g, '_');
+      res.set('Cache-Control', 'private, no-store');
+      res.set('X-Content-Type-Options', 'nosniff');
+      res.set(
+        'Content-Disposition',
+        `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(document.original_name)}`,
+      );
+      return res.type(document.mime_type).send(document.file_data);
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
 if (config.nodeEnv === 'development') {
   app.post('/api/dev/sms', (req, res) => {
     console.log('[DEV SMS] Message accepted by the development stub.');
@@ -239,6 +284,57 @@ app.get('/api/application/profile', requireAuth, requireVerified, async (req, re
     return next(error);
   }
 });
+
+app.get('/api/application/information-requests', requireAuth, requireVerified, async (req, res, next) => {
+  try {
+    const requests = await acmisIntegration.listInformationRequests(req.applicant.id);
+    res.set('Cache-Control', 'private, no-store');
+    return res.json({ ok: true, data: { requests } });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post('/api/application/information-requests/:requestId/responses',
+  requireAuth, requireVerified, csrfProtection, async (req, res, next) => {
+    try {
+      const response = await acmisIntegration.submitInformationResponse(
+        req.applicant.id,
+        req.params.requestId,
+        req.body || {},
+      );
+      return res.status(202).json({ ok: true, data: { response } });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+app.post('/api/application/information-requests/:requestId/documents',
+  requireAuth, requireVerified, csrfProtection,
+  express.raw({ type: '*/*', limit: '10mb' }), async (req, res, next) => {
+    try {
+      const originalName = typeof req.query.name === 'string' ? req.query.name : '';
+      const document = await applicationService.saveInformationRequestDocument(
+        req.applicant.id,
+        req.params.requestId,
+        req.body,
+        req.get('Content-Type')?.split(';')[0],
+        originalName,
+      );
+      return res.status(201).json({
+        ok: true,
+        data: {
+          document: {
+            ...document,
+            filename: document.original_name,
+            size: document.file_size,
+          },
+        },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  });
 
 app.post('/api/application/submit', requireAuth, requireVerified, csrfProtection, async (req, res, next) => {
   try {
@@ -510,17 +606,21 @@ app.use((error, req, res, next) => {
 
 async function start() {
   await db.migrate();
+  acmisIntegration.start();
   return new Promise((resolve, reject) => {
     const server = app.listen(config.port, () => {
       console.log(`EAIMS portal listening on ${config.appBaseUrl}`);
       resolve(server);
     });
-    server.once('error', reject);
+    server.once('error', (error) => {
+      acmisIntegration.stop().then(() => reject(error), reject);
+    });
   });
 }
 
 async function shutdown(server, timeoutMs = 10000) {
   if (!server || !server.listening) {
+    await acmisIntegration.stop();
     sessionStore.close();
     return db.close();
   }
@@ -536,7 +636,8 @@ async function shutdown(server, timeoutMs = 10000) {
       clearTimeout(forceCloseTimer);
       sessionStore.close();
       try {
-        await db.close();
+      await acmisIntegration.stop();
+      await db.close();
       } catch (closeError) {
         return reject(closeError);
       }

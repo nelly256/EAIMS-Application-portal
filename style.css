@@ -2611,6 +2611,113 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   font-size: 0.76rem;
 }
 
+.information-requests-panel {
+  margin-top: 1rem;
+  padding-bottom: 1.35rem;
+}
+
+.information-request-list {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.information-request-card {
+  padding: 1rem;
+  border: 1px solid #e2e6ec;
+  border-radius: 0.65rem;
+  background: #fbfcfe;
+}
+
+.information-request-card h3 {
+  margin: 0;
+  color: #292d36;
+  font-size: 1rem;
+}
+
+.information-request-message {
+  margin: 0.6rem 0 0;
+  color: #424853;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.information-request-details,
+.information-request-empty {
+  margin: 0.65rem 0 0;
+  color: var(--portal-muted);
+  font-size: 0.82rem;
+}
+
+.information-request-form {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.information-request-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.information-request-field label {
+  color: #424853;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.information-request-field textarea,
+.information-request-field input[type="file"] {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #cfd5df;
+  border-radius: 0.45rem;
+  background: #fff;
+  color: #292d36;
+  font: inherit;
+}
+
+.information-request-field textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.information-request-field small {
+  color: var(--portal-muted);
+}
+
+.information-request-submit {
+  justify-self: start;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--brand);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.information-request-submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.information-request-form-message {
+  margin: 0;
+}
+
+.information-request-status {
+  margin: 0.8rem 0 0;
+  color: var(--brand-dark);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.information-request-status.is-failed {
+  color: #a32121;
+}
+
 /* ===== Student documents ===== */
 .documents-main {
   width: min(100%, 1500px);
