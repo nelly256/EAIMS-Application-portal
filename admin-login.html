@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Staff sign in | EAIMS</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body class="admin-login-page">
+  <main class="admin-login-card">
+    <a class="admin-brand" href="/">EAIMS <span>Admissions</span></a>
+    <p class="admin-eyebrow">STAFF ACCESS</p>
+    <h1>Sign in to the admin portal</h1>
+    <p class="admin-login-intro">Use your authorized EAIMS staff account to continue.</p>
+    <form id="adminLoginForm" novalidate>
+      <label for="adminLoginEmail">Email address</label>
+      <input id="adminLoginEmail" name="email" type="email" autocomplete="username" maxlength="254" required />
+      <label for="adminLoginPassword">Password</label>
+      <input id="adminLoginPassword" name="password" type="password" autocomplete="current-password" required />
+      <p id="adminLoginMessage" class="admin-message" role="alert" hidden></p>
+      <button class="admin-button admin-button-primary" type="submit">Sign in securely</button>
+    </form>
+    <a class="admin-login-back" href="/">Return to EAIMS portal</a>
+  </main>
+  <script src="/js/admin-client.js" defer></script>
+  <script src="/js/admin-login.js" defer></script>
+</body>
+</html>

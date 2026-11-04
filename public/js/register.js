@@ -82,7 +82,12 @@
         body: JSON.stringify(data),
       });
       try {
-        window.sessionStorage.setItem('eaimsDeliveryInfo', JSON.stringify(payload.data.delivery || {}));
+        const delivery = payload.data.delivery || {};
+        window.sessionStorage.setItem('eaimsDeliveryInfo', JSON.stringify({
+          email: { sent: Boolean(delivery.email && delivery.email.sent) },
+          sms: { sent: Boolean(delivery.sms && delivery.sms.sent) },
+        }));
+        window.sessionStorage.setItem('eaimsApplicationNumber', payload.data.applicationNumber || '');
       } catch (error) {}
       if (!payload.data.deliveryAvailable) {
         window.location.assign('/verify.html?delivery=unavailable');

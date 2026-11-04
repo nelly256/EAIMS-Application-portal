@@ -11,8 +11,18 @@ const { requireAuth, requireVerified } = require('./src/middleware/auth');
 const { ensureCsrfToken, csrfProtection } = require('./src/middleware/csrf');
 const { testSmtpConnection } = require('./src/services/notifications');
 const applicationService = require('./src/services/application-service');
+const { createAcmisIntegration } = require('./src/services/acmis-integration');
+const { createAcmisDocumentAccess } = require('./src/services/acmis-document-access');
 const { COUNTRY_CODES } = require('./src/validation');
 const authRoutes = require('./src/routes/auth');
+const chatbotRoutes = require('./src/routes/chatbot');
+const supportRoutes = require('./src/routes/support');
+const adminRoutes = require('./src/routes/admin');
+const adminService = require('./src/services/admin-service');
+const acmisIntegration = createAcmisIntegration({ settings: config.acmis });
+const acmisDocumentAccess = createAcmisDocumentAccess({
+  token: config.acmis.portalToken,
+});
 
 const app = express();
 
@@ -41,8 +51,30 @@ app.use(morgan(logFormat));
 app.use(express.json({ limit: '32kb' }));
 app.use(express.urlencoded({ extended: false, limit: '32kb' }));
 
+app.get('/health/live', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  return res.status(200).json({ status: 'alive' });
+});
+
+app.get('/health/ready', async (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    await db.get('SELECT 1 AS ready');
+    return res.status(200).json({
+      status: 'ready',
+      checks: {
+        database: 'ok',
+        chatbot: config.chatbot.groqApiKey && config.chatbot.groqModel ? 'groq' : 'local-fallback',
+      },
+    });
+  } catch {
+    console.error('Database readiness check failed.');
+    return res.status(503).json({ status: 'not_ready', checks: { database: 'unavailable' } });
+  }
+});
+
 const sessionStore = new SqliteSessionStore({ ttl: config.sessionMaxAge });
-app.use(session({
+const applicantSession = session({
   name: 'eaims.sid',
   secret: config.sessionSecret,
   store: sessionStore,
@@ -56,7 +88,43 @@ app.use(session({
     maxAge: config.sessionMaxAge,
     path: '/',
   },
-}));
+});
+const supportSession = session({
+  name: 'eaims.support.sid',
+  secret: config.sessionSecret,
+  store: sessionStore,
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    secure: config.cookieSecure,
+    sameSite: 'lax',
+    maxAge: config.sessionMaxAge,
+    path: '/',
+  },
+});
+const adminSession = session({
+  name: 'eaims.admin.sid',
+  secret: config.sessionSecret,
+  store: sessionStore,
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    secure: config.cookieSecure,
+    sameSite: 'lax',
+    maxAge: config.sessionMaxAge,
+    path: '/',
+  },
+});
+app.use((req, res, next) => {
+  if (/^\/(?:api\/support|support|api\/admin|admin)(?:\/|$)/.test(req.path)) return next();
+  return applicantSession(req, res, next);
+});
+app.use(['/api/support', '/support'], supportSession);
+app.use(['/api/admin', '/admin'], adminSession);
 app.use(ensureCsrfToken);
 
 const apiLimiter = rateLimit({
@@ -67,14 +135,52 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatbotRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/admin', adminRoutes);
+
+app.get(
+  '/api/integrations/acmis/applications/:sourceApplicationId/documents/:sourceDocumentId',
+  acmisDocumentAccess.requireToken,
+  async (req, res, next) => {
+    try {
+      const sourceApplicationId = String(req.params.sourceApplicationId || '').trim();
+      const sourceDocumentId = String(req.params.sourceDocumentId || '').trim();
+      if (!sourceApplicationId || sourceApplicationId.length > 150
+        || !sourceDocumentId || sourceDocumentId.length > 150) {
+        return res.status(404).json({
+          ok: false,
+          error: { code: 'DOCUMENT_NOT_FOUND', message: 'The requested document was not found.' },
+        });
+      }
+      const document = await acmisDocumentAccess.getDocument(
+        sourceApplicationId,
+        sourceDocumentId,
+        req.get('X-Correlation-ID'),
+      );
+      if (!document) {
+        return res.status(404).json({
+          ok: false,
+          error: { code: 'DOCUMENT_NOT_FOUND', message: 'The requested document was not found.' },
+        });
+      }
+      const fallbackName = document.original_name.replace(/[^\x20-\x7e]|["\\/]/g, '_');
+      res.set('Cache-Control', 'private, no-store');
+      res.set('X-Content-Type-Options', 'nosniff');
+      res.set(
+        'Content-Disposition',
+        `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(document.original_name)}`,
+      );
+      return res.type(document.mime_type).send(document.file_data);
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
 
 if (config.nodeEnv === 'development') {
   app.post('/api/dev/sms', (req, res) => {
-    console.log('[DEV SMS]', JSON.stringify({
-      to: req.body.to,
-      message: req.body.message,
-      from: req.body.from,
-    }, null, 2));
+    console.log('[DEV SMS] Message accepted by the development stub.');
     res.status(200).json({ success: true, messageId: `dev-sms-${Date.now()}` });
   });
 
@@ -92,17 +198,22 @@ if (config.nodeEnv === 'development') {
 app.get('/api/dashboard', requireAuth, requireVerified, async (req, res, next) => {
   const { publicApplicant } = require('./src/security');
   try {
-    const [profile, programSelection, documents] = await Promise.all([
+    const [profile, programSelection, documents, application, notifications, announcements] = await Promise.all([
       applicationService.getApplicationProfile(req.applicant.id),
       applicationService.getProgramSelection(req.applicant.id),
       applicationService.listApplicationDocuments(req.applicant.id),
+      applicationService.getApplicationSubmission(req.applicant.id),
+      applicationService.getApplicationStatusNotifications(req.applicant.id),
+      adminService.listAnnouncements(true),
     ]);
     const savedProfile = profile || {};
     return res.json({
       ok: true,
       data: {
         applicant: publicApplicant(req.applicant),
-        application: null,
+        application: application || null,
+        notifications,
+        announcements,
         programSelection: programSelection || null,
         applicationProfile: {
           firstName: savedProfile ? savedProfile.first_name : req.applicant.other_names || '',
@@ -127,28 +238,35 @@ app.get('/api/dashboard', requireAuth, requireVerified, async (req, res, next) =
 
 app.get('/api/application/profile', requireAuth, requireVerified, async (req, res, next) => {
   try {
-    const [savedProfile, programSelection, documents] = await Promise.all([
+    const [savedProfile, programSelection, documents, submission, notifications, programs, intakes] = await Promise.all([
       applicationService.getApplicationProfile(req.applicant.id),
       applicationService.getProgramSelection(req.applicant.id),
       applicationService.listApplicationDocuments(req.applicant.id),
+      applicationService.getApplicationSubmission(req.applicant.id),
+      applicationService.getApplicationStatusNotifications(req.applicant.id),
+      applicationService.getPrograms(),
+      applicationService.getIntakes(),
     ]);
     const profile = savedProfile || {};
     return res.json({
       ok: true,
       data: {
         countries: COUNTRY_CODES.map((country) => country.name),
-        programs: applicationService.getPrograms(),
-        intakes: applicationService.getIntakes(),
+        programs,
+        intakes,
         programSelection: programSelection || null,
+        submission: submission || null,
+        notifications,
         profile: {
-          firstName: savedProfile ? profile.first_name : req.applicant.other_names || '',
-          lastName: savedProfile ? profile.last_name : req.applicant.surname || '',
+          applicationNumber: req.applicant.application_number || '',
+          firstName: profile.first_name || req.applicant.other_names || '',
+          lastName: profile.last_name || req.applicant.surname || '',
           idNumber: profile.id_number || '',
           email: req.applicant.email || '',
           phone: req.applicant.phone || '',
           countryOfBirth: profile.country_of_birth || '',
-          dateOfBirth: savedProfile ? profile.date_of_birth : req.applicant.date_of_birth || '',
-          gender: savedProfile ? profile.gender : req.applicant.sex || '',
+          dateOfBirth: profile.date_of_birth || req.applicant.date_of_birth || '',
+          gender: profile.gender || req.applicant.sex || '',
           physicalAddress: profile.physical_address || '',
           nextOfKinName: profile.next_of_kin_name || '',
           nextOfKinContact: profile.next_of_kin_contact || '',
@@ -162,6 +280,75 @@ app.get('/api/application/profile', requireAuth, requireVerified, async (req, re
         },
       },
     });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.get('/api/application/information-requests', requireAuth, requireVerified, async (req, res, next) => {
+  try {
+    const requests = await acmisIntegration.listInformationRequests(req.applicant.id);
+    res.set('Cache-Control', 'private, no-store');
+    return res.json({ ok: true, data: { requests } });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post('/api/application/information-requests/:requestId/responses',
+  requireAuth, requireVerified, csrfProtection, async (req, res, next) => {
+    try {
+      const response = await acmisIntegration.submitInformationResponse(
+        req.applicant.id,
+        req.params.requestId,
+        req.body || {},
+      );
+      return res.status(202).json({ ok: true, data: { response } });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+app.post('/api/application/information-requests/:requestId/documents',
+  requireAuth, requireVerified, csrfProtection,
+  express.raw({ type: '*/*', limit: '10mb' }), async (req, res, next) => {
+    try {
+      const originalName = typeof req.query.name === 'string' ? req.query.name : '';
+      const document = await applicationService.saveInformationRequestDocument(
+        req.applicant.id,
+        req.params.requestId,
+        req.body,
+        req.get('Content-Type')?.split(';')[0],
+        originalName,
+      );
+      return res.status(201).json({
+        ok: true,
+        data: {
+          document: {
+            ...document,
+            filename: document.original_name,
+            size: document.file_size,
+          },
+        },
+      });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+app.post('/api/application/submit', requireAuth, requireVerified, csrfProtection, async (req, res, next) => {
+  try {
+    const submission = await applicationService.submitApplication(req.applicant.id);
+    return res.status(201).json({ ok: true, data: { submission } });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post('/api/application/notifications/read', requireAuth, requireVerified, csrfProtection, async (req, res, next) => {
+  try {
+    const result = await applicationService.markApplicationStatusNotificationsRead(req.applicant.id);
+    return res.json({ ok: true, data: result });
   } catch (error) {
     return next(error);
   }
@@ -322,12 +509,65 @@ app.get('/forgot-password.html', (req, res) => sendFile(res, 'forgot-password.ht
 app.get('/reset-password.html', (req, res) => sendFile(res, 'reset-password.html'));
 app.get('/dashboard.html', requireAuth, requireVerified, (req, res) => sendFile(res, 'dashboard.html'));
 app.get('/dashboard', requireAuth, requireVerified, (req, res) => sendFile(res, 'dashboard.html'));
+app.get('/admin/login', (req, res, next) => {
+  if (!req.session.adminUserId) {
+    res.set('Cache-Control', 'no-store');
+    return sendFile(res, 'admin-login.html');
+  }
+  return db.get('SELECT id FROM admin_users WHERE id = ? AND is_active = 1', [req.session.adminUserId])
+    .then((admin) => {
+      if (admin) return res.redirect('/admin');
+      res.set('Cache-Control', 'no-store');
+      return sendFile(res, 'admin-login.html');
+    })
+    .catch(next);
+});
+app.get('/admin', (req, res, next) => {
+  if (!req.session.adminUserId) return res.redirect('/admin/login');
+  return db.get('SELECT id FROM admin_users WHERE id = ? AND is_active = 1', [req.session.adminUserId])
+    .then((admin) => {
+      if (admin) {
+        res.set('Cache-Control', 'no-store');
+        return sendFile(res, 'admin.html');
+      }
+      return req.session.destroy((error) => {
+        if (error) return next(error);
+        return res.redirect('/admin/login');
+      });
+    })
+    .catch(next);
+});
 app.get('/my-application.html', requireAuth, requireVerified, (req, res) => sendFile(res, 'my-application.html'));
 app.get('/my-application', requireAuth, requireVerified, (req, res) => sendFile(res, 'my-application.html'));
 app.get('/track-application.html', requireAuth, requireVerified, (req, res) => sendFile(res, 'track-application.html'));
 app.get('/track-application', requireAuth, requireVerified, (req, res) => sendFile(res, 'track-application.html'));
 app.get('/documents.html', requireAuth, requireVerified, (req, res) => sendFile(res, 'documents.html'));
 app.get('/documents', requireAuth, requireVerified, (req, res) => sendFile(res, 'documents.html'));
+app.get('/support', (req, res) => res.redirect('/support/login'));
+app.get('/support/login', (req, res, next) => {
+  if (!req.session.supportAgentId) return sendFile(res, 'support-login.html');
+  db.get('SELECT id FROM support_agents WHERE id = ? AND is_active = 1', [req.session.supportAgentId])
+    .then((agent) => {
+      if (agent) return res.redirect('/support/inbox');
+      return req.session.destroy((error) => {
+        if (error) return next(error);
+        return sendFile(res, 'support-login.html');
+      });
+    })
+    .catch(next);
+});
+app.get('/support/inbox', (req, res, next) => {
+  if (!req.session.supportAgentId) return res.redirect('/support/login');
+  return db.get('SELECT id FROM support_agents WHERE id = ? AND is_active = 1', [req.session.supportAgentId])
+    .then((agent) => {
+      if (agent) return sendFile(res, 'support-inbox.html');
+      return req.session.destroy((error) => {
+        if (error) return next(error);
+        return res.redirect('/support/login');
+      });
+    })
+    .catch(next);
+});
 
 app.get('/style.css', (req, res) => sendFile(res, 'style.css'));
 app.get('/favicon.svg', (req, res) => sendFile(res, 'favicon.svg'));
@@ -340,6 +580,10 @@ app.get(/\.(jpe?g|png|gif|ico|webp)$/i, (req, res, next) => {
 });
 
 app.use('/js', express.static(path.join(__dirname, 'public', 'js'), {
+  immutable: true,
+  maxAge: config.nodeEnv === 'production' ? '1d' : 0,
+}));
+app.use('/css', express.static(path.join(__dirname, 'public', 'css'), {
   immutable: true,
   maxAge: config.nodeEnv === 'production' ? '1d' : 0,
 }));
@@ -362,19 +606,72 @@ app.use((error, req, res, next) => {
 
 async function start() {
   await db.migrate();
-  await new Promise((resolve) => {
-    app.listen(config.port, () => {
+  acmisIntegration.start();
+  return new Promise((resolve, reject) => {
+    const server = app.listen(config.port, () => {
       console.log(`EAIMS portal listening on ${config.appBaseUrl}`);
-      resolve();
+      resolve(server);
+    });
+    server.once('error', (error) => {
+      acmisIntegration.stop().then(() => reject(error), reject);
+    });
+  });
+}
+
+async function shutdown(server, timeoutMs = 10000) {
+  if (!server || !server.listening) {
+    await acmisIntegration.stop();
+    sessionStore.close();
+    return db.close();
+  }
+
+  await new Promise((resolve, reject) => {
+    const forceCloseTimer = setTimeout(() => {
+      console.error('Graceful shutdown timed out; closing active HTTP connections.');
+      server.closeAllConnections();
+    }, timeoutMs);
+    forceCloseTimer.unref();
+
+    server.close(async (error) => {
+      clearTimeout(forceCloseTimer);
+      sessionStore.close();
+      try {
+      await acmisIntegration.stop();
+      await db.close();
+      } catch (closeError) {
+        return reject(closeError);
+      }
+      if (error) return reject(error);
+      return resolve();
     });
   });
 }
 
 if (require.main === module) {
-  start().catch((error) => {
+  start().then((server) => {
+    let shutdownStarted = false;
+    const handleShutdown = (signal) => {
+      if (shutdownStarted) return;
+      shutdownStarted = true;
+      console.log(`Received ${signal}; shutting down gracefully.`);
+      shutdown(server).catch((error) => {
+        console.error('Graceful shutdown failed.', error);
+        process.exitCode = 1;
+      });
+    };
+
+    process.once('SIGINT', () => handleShutdown('SIGINT'));
+    process.once('SIGTERM', () => handleShutdown('SIGTERM'));
+  }).catch(async (error) => {
     console.error(error);
+    sessionStore.close();
+    try {
+      await db.close();
+    } catch (closeError) {
+      console.error('Unable to close the database after startup failed.', closeError);
+    }
     process.exitCode = 1;
   });
 }
 
-module.exports = { app, start };
+module.exports = { app, start, shutdown };

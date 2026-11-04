@@ -1,0 +1,54 @@
+.applicant-announcements {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 24px;
+  padding: 20px;
+  border: 1px solid #d8e8e4;
+  border-radius: 16px;
+  background: linear-gradient(115deg, #f4fbf8, #fff);
+}
+
+.applicant-announcements > .panel-heading-copy h2 {
+  margin: 0;
+  color: #164e83;
+  font-size: 1.05rem;
+}
+
+.applicant-announcements > .panel-heading-copy p {
+  margin: 3px 0 0;
+  color: #687b88;
+  font-size: 0.86rem;
+}
+
+#applicantAnnouncementsList {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+}
+
+#applicantAnnouncementsList li {
+  padding: 13px 15px;
+  border-left: 3px solid #168b70;
+  border-radius: 7px;
+  background: #fff;
+}
+
+#applicantAnnouncementsList h3 {
+  margin: 0 0 4px;
+  color: #172b3c;
+  font-size: 0.94rem;
+}
+
+#applicantAnnouncementsList p {
+  margin: 0;
+  color: #455c6e;
+  font-size: 0.88rem;
+  white-space: pre-wrap;
+}
+
+#applicantAnnouncementsList time {
+  display: block;
+  margin-top: 7px;
+  color: #7b8b97;
+  font-size: 0.72rem;
+}

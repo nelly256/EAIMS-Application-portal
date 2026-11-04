@@ -6,6 +6,7 @@
 
   const formError = document.getElementById('formError');
   const formSuccess = document.getElementById('formSuccess');
+  const applicationNumberInfo = document.getElementById('applicationNumberInfo');
   const deliveryInfo = document.getElementById('deliveryInfo');
   const codeInput = document.getElementById('code');
   const submitButton = form.querySelector('button[type="submit"]');
@@ -13,13 +14,20 @@
 
   const params = new URLSearchParams(window.location.search);
   if (params.get('delivery') === 'unavailable') {
-    window.EaimsAuth.showFormMessage(formSuccess, 'Account created, but email or SMS delivery is not configured. Contact EAIMS support if you do not receive a code.', 'warning');
+    window.EaimsAuth.showFormMessage(formSuccess, 'Your account was created. If you do not receive a verification code, contact EAIMS support.', 'warning');
   }
 
   function getStoredDeliveryInfo() {
     try {
       const raw = window.sessionStorage.getItem('eaimsDeliveryInfo');
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const delivery = JSON.parse(raw);
+      const safeDelivery = {
+        email: { sent: Boolean(delivery.email && delivery.email.sent) },
+        sms: { sent: Boolean(delivery.sms && delivery.sms.sent) },
+      };
+      window.sessionStorage.setItem('eaimsDeliveryInfo', JSON.stringify(safeDelivery));
+      return safeDelivery;
     } catch (error) {
       return null;
     }
@@ -27,15 +35,28 @@
 
   function storeDeliveryInfo(delivery) {
     try {
-      window.sessionStorage.setItem('eaimsDeliveryInfo', JSON.stringify(delivery || {}));
+      const safeDelivery = {
+        email: { sent: Boolean(delivery && delivery.email && delivery.email.sent) },
+        sms: { sent: Boolean(delivery && delivery.sms && delivery.sms.sent) },
+      };
+      window.sessionStorage.setItem('eaimsDeliveryInfo', JSON.stringify(safeDelivery));
     } catch (error) {}
   }
 
   function clearStoredDeliveryInfo() {
     try {
       window.sessionStorage.removeItem('eaimsDeliveryInfo');
+      window.sessionStorage.removeItem('eaimsApplicationNumber');
     } catch (error) {}
   }
+
+  try {
+    const applicationNumber = window.sessionStorage.getItem('eaimsApplicationNumber');
+    if (applicationNumber) {
+      applicationNumberInfo.textContent = `Your application number is ${applicationNumber}. Keep it for future reference.`;
+      applicationNumberInfo.hidden = false;
+    }
+  } catch (error) {}
 
   function describeDelivery(delivery) {
     if (!delivery) return null;
@@ -43,15 +64,17 @@
     if (delivery.email && delivery.email.sent) channels.push('email');
     if (delivery.sms && delivery.sms.sent) channels.push('SMS');
     const failures = [];
-    if (delivery.email && !delivery.email.sent) failures.push(`email (${delivery.email.reason || 'failed'})`);
-    if (delivery.sms && !delivery.sms.sent) failures.push(`SMS (${delivery.sms.reason || 'failed'})`);
+    if (delivery.email && !delivery.email.sent) failures.push('email');
+    if (delivery.sms && !delivery.sms.sent) failures.push('SMS');
     if (channels.length === 0 && failures.length === 0) return null;
     let summary = '';
     if (channels.length > 0) {
       summary = `The verification code has been sent to your ${channels.join(' and ')}.`;
     }
     if (failures.length > 0) {
-      summary += ` ${failures.length > 0 ? 'Note: ' : ''}${failures.join(', ')} could not be delivered.`;
+      summary += channels.length > 0
+        ? ' It could not be sent to all of your contact methods.'
+        : ' We could not send a verification code. Please contact support if you need help.';
     }
     return summary;
   }

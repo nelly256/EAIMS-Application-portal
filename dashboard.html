@@ -7,6 +7,8 @@
   <title>Applicant Dashboard | EAIMS Online Application Portal</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/css/chatbot.css" />
+  <link rel="stylesheet" href="/css/applicant-announcements.css" />
   <link rel="icon" href="/favicon.png" type="image/png" />
 </head>
 <body class="portal-dashboard-body">
@@ -42,6 +44,18 @@
           <p>STUDENT PORTAL</p>
           <h1 id="viewTitle">Dashboard</h1>
         </div>
+        <div class="notification-center">
+          <button id="notificationBell" class="notification-bell" type="button"
+            aria-label="Notifications" aria-expanded="false" aria-controls="notificationsPanel">
+            <i class="fas fa-bell" aria-hidden="true"></i>
+            <span id="notificationCount" class="notification-count" aria-label="Unread notifications" hidden>0</span>
+          </button>
+          <section id="notificationsPanel" class="notification-panel" aria-label="Application notifications" hidden>
+            <h2>Notifications</h2>
+            <p id="notificationsEmptyState" class="notifications-empty">No application updates yet.</p>
+            <ul id="notificationsList" class="notifications-list"></ul>
+          </section>
+        </div>
         <div class="student-identity">
           <div class="student-identity-copy">
             <strong id="headerApplicantName">Applicant</strong>
@@ -57,6 +71,14 @@
           <section class="student-welcome" aria-labelledby="welcomeHeading">
             <h2 id="welcomeHeading">Welcome back, <span id="applicantFirstName">Applicant</span></h2>
             <p>Track your application progress and manage your admission journey.</p>
+          </section>
+
+          <section class="portal-panel applicant-announcements" id="applicantAnnouncements" aria-labelledby="announcementsHeading" hidden>
+            <div class="panel-heading-copy">
+              <h2 id="announcementsHeading">Admissions announcements</h2>
+              <p>Important updates from the admissions office.</p>
+            </div>
+            <ul id="applicantAnnouncementsList"></ul>
           </section>
 
           <section class="dashboard-overview" aria-label="Application overview">
@@ -80,6 +102,23 @@
                 <span id="profileCompletionLabel">Complete your profile details to get started.</span>
                 <strong id="profileCompletionPercent">0%</strong>
               </div>
+              <section class="application-status-progress" aria-labelledby="applicationJourneyTitle">
+                <h3 id="applicationJourneyTitle">Application journey</h3>
+                <ol class="application-status-steps">
+                  <li class="application-status-step is-upcoming" data-status="submitted">
+                    <span aria-hidden="true"></span><strong>Submitted</strong>
+                  </li>
+                  <li class="application-status-step is-upcoming" data-status="in_review">
+                    <span aria-hidden="true"></span><strong>In review</strong>
+                  </li>
+                  <li class="application-status-step is-upcoming" data-status="approved">
+                    <span aria-hidden="true"></span><strong>Approved</strong>
+                  </li>
+                  <li class="application-status-step is-upcoming" data-status="admitted">
+                    <span aria-hidden="true"></span><strong>Admitted</strong>
+                  </li>
+                </ol>
+              </section>
             </article>
 
             <article class="portal-panel next-step-panel" id="application">
@@ -135,10 +174,10 @@
                   <span class="checklist-copy"><strong>Supporting documents</strong><small id="documentChecklistDescription">Upload your passport photo, transcripts, and ID or passport</small></span>
                   <span class="checklist-status" id="documentChecklistStatus">Upcoming</span>
                 </li>
-                <li class="checklist-item">
+                <li class="checklist-item" id="submissionChecklist">
                   <span class="checklist-state" aria-hidden="true"></span>
-                  <span class="checklist-copy"><strong>Application submission</strong><small>Submit when all application steps are complete</small></span>
-                  <span class="checklist-status">Upcoming</span>
+                  <span class="checklist-copy"><strong>Application submission</strong><small id="submissionChecklistDescription">Submit when all application steps are complete</small></span>
+                  <span class="checklist-status" id="submissionChecklistStatus">Upcoming</span>
                 </li>
               </ul>
             </article>
@@ -162,6 +201,7 @@
               <span class="profile-verified"><i class="fas fa-circle-check" aria-hidden="true"></i> Verified account</span>
             </header>
             <dl class="profile-list">
+              <div><dt>Application number</dt><dd id="applicantApplicationNumber"></dd></div>
               <div><dt>Full name</dt><dd id="applicantNameDetail"></dd></div>
               <div><dt>Email address</dt><dd id="applicantEmail"></dd></div>
               <div><dt>Phone number</dt><dd id="applicantPhone"></dd></div>
@@ -178,5 +218,6 @@
   <script src="/js/auth-client.js?v=2"></script>
   <script src="/js/nav.js"></script>
   <script src="/js/dashboard.js"></script>
+  <script src="/js/chatbot-widget.js" defer></script>
 </body>
 </html>

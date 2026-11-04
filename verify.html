@@ -6,6 +6,7 @@
   <meta name="description" content="Verify your EAIMS application account" />
   <title>Verify Account | EAIMS Online Application Portal</title>
   <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/css/chatbot.css" />
   <link rel="icon" href="/favicon.png" type="image/png" />
 </head>
 <body class="auth-page-body">
@@ -31,6 +32,7 @@
           </div>
           <div id="formError" class="form-message form-message-error" role="alert" hidden></div>
           <div id="formSuccess" class="form-message form-message-success" role="status" hidden></div>
+          <p id="applicationNumberInfo" class="form-message form-message-info" role="status" hidden></p>
           <p id="deliveryInfo" class="form-message form-message-info" role="status" hidden></p>
           <button class="btn btn-primary btn-lg btn-block auth-submit" type="submit">VERIFY ACCOUNT</button>
           <button id="resendVerification" class="btn btn-outline btn-block auth-secondary" type="button">RESEND CODE</button>
@@ -42,5 +44,6 @@
   <footer class="auth-footer"><p>&copy; 2026 EAIMS. All Rights Reserved.</p></footer>
   <script src="/js/auth-client.js"></script>
   <script src="/js/verify.js"></script>
+  <script src="/js/chatbot-widget.js" defer></script>
 </body>
 </html>

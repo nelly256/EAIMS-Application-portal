@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="EAIMS online application form" />
+  <title>Application Form | EAIMS Online Application Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+</head>
+<body>
+  <header class="header dashboard-header">
+    <div class="container header-inner">
+      <a href="/dashboard" class="dashboard-brand" aria-label="EAIMS applicant dashboard">
+        <img src="/eaims-logo.jpeg" alt="EAIMS logo" />
+        <span>EAIMS</span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Applicant navigation">
+        <ul class="nav-list">
+          <li><a href="/dashboard">Dashboard</a></li>
+          <li><a href="/dashboard#application">Application</a></li>
+          <li><button id="logoutButton" class="btn btn-outline" type="button">Log out</button></li>
+        </ul>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+          <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+        </button>
+      </nav>
+    </div>
+  </header>
+  <main class="application-wizard-page">
+    <div class="container">
+      <div class="wizard-header">
+        <p class="eyebrow">ONLINE APPLICATION PORTAL</p>
+        <h1 class="wizard-title">EAIMS Application Form</h1>
+        <p class="wizard-subtitle">Complete all sections. Your progress is saved automatically as you move between steps.</p>
+      </div>
+      <div class="wizard-progress" id="wizardProgress">
+        <div class="progress-step" data-step="1">Personal Information</div>
+        <div class="progress-step" data-step="2">Programme & Study</div>
+        <div class="progress-step" data-step="3">Sponsor</div>
+        <div class="progress-step" data-step="4">Education</div>
+        <div class="progress-step" data-step="5">Other Courses</div>
+        <div class="progress-step" data-step="6">Employment</div>
+        <div class="progress-step" data-step="7">Reason</div>
+        <div class="progress-step" data-step="8">Documents</div>
+        <div class="progress-step" data-step="9">Review & Declaration</div>
+      </div>
+      <div class="wizard-content">
+        <div id="wizardError" class="form-message form-message-error" role="alert" hidden></div>
+        <section class="wizard-step" id="step-1" data-step="1" hidden style="display: none;"></section>
+        <section class="wizard-step" id="step-2" data-step="2" hidden style="display: none;"></section>
+        <section class="wizard-step" id="step-3" data-step="3" hidden style="display: none;"></section>
+        <section class="wizard-step" id="step-4" data-step="4" hidden style="display: none;"></section>
+        <section class="wizard-step" id="step-5" data-step="5" hidden style="display: none;"></section>
+        <section class="wizard-step" id="step-6" data-step="6" hidden style="display: none;"></section>
+        <section class="wizard-step" id="step-7" data-step="7" hidden style="display: none;"></section>
+        <section class="wizard-step" id="step-8" data-step="8" hidden style="display: none;"></section>
+        <section class="wizard-step" id="step-9" data-step="9" hidden style="display: none;"></section>
+        <section class="wizard-step" id="step-10" data-step="10" hidden style="display: none;"></section>
+      </div>
+      <div class="wizard-nav" id="wizardNav">
+        <button type="button" class="btn btn-outline" id="prevStep" hidden>Back</button>
+        <button type="button" class="btn btn-primary" id="nextStep">Next</button>
+        <button type="button" class="btn btn-primary" id="submitBtn" hidden>Submit Application</button>
+      </div>
+    </div>
+  </main>
+  <footer class="auth-footer"><p>2026 EAIMS. All Rights Reserved.</p></footer>
+  <script src="/js/auth-client.js"></script>
+  <script src="/js/nav.js"></script>
+  <script src="/js/application-form.js"></script>
+</body>
+</html>

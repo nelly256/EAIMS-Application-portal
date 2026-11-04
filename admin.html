@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Administration | EAIMS</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body class="admin-page">
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <a class="admin-brand" href="/admin"><span class="admin-brand-mark">E</span><span>EAIMS <small>Admissions</small></span></a>
+      <p class="admin-eyebrow">ADMINISTRATION</p>
+      <nav class="admin-navigation" aria-label="Administration">
+        <button class="admin-nav-link is-active" type="button" data-view="dashboard">Overview</button>
+        <button class="admin-nav-link" type="button" data-view="intakes" data-admin-only>Intake management</button>
+        <button class="admin-nav-link" type="button" data-view="programs" data-admin-only>Programme management</button>
+        <button class="admin-nav-link" type="button" data-view="applicants">Applicants</button>
+        <button class="admin-nav-link" type="button" data-view="applications">Applications</button>
+        <button class="admin-nav-link" type="button" data-view="announcements" data-admin-only>Announcements</button>
+        <button class="admin-nav-link" type="button" data-view="reports" data-admin-only>Reports & analytics</button>
+        <button class="admin-nav-link" type="button" data-view="staff" data-superadmin-only hidden>Staff & audit</button>
+      </nav>
+      <div class="admin-sidebar-footer">
+        <a href="/" class="admin-return-link">← Applicant portal</a>
+        <button id="adminLogoutButton" class="admin-logout-button" type="button">Sign out</button>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <p class="admin-eyebrow">EAIMS STAFF PORTAL</p>
+          <h1 id="adminPageTitle">Overview</h1>
+        </div>
+        <div class="admin-user">
+          <span class="admin-avatar" id="adminAvatar">EA</span>
+          <span><strong id="adminUserEmail">Staff</strong><small id="adminUserRole">Administrator</small></span>
+        </div>
+      </header>
+      <p id="adminGlobalMessage" class="admin-message" role="status" hidden></p>
+
+      <section class="admin-view is-active" data-panel="dashboard">
+        <div class="admin-section-heading">
+          <div><h2>Admissions overview</h2><p>Current activity across registrations, applications, and intake periods.</p></div>
+          <button class="admin-button" type="button" data-refresh>Refresh data</button>
+        </div>
+        <div class="admin-metric-grid">
+          <article class="admin-metric"><span>Registered applicants</span><strong id="metricRegistrations">—</strong></article>
+          <article class="admin-metric"><span>Verified accounts</span><strong id="metricVerified">—</strong></article>
+          <article class="admin-metric"><span>Submitted applications</span><strong id="metricSubmissions">—</strong></article>
+          <article class="admin-metric"><span>Incomplete applications</span><strong id="metricIncomplete">—</strong></article>
+          <article class="admin-metric"><span>Failed submission attempts</span><strong id="metricFailures">—</strong></article>
+          <article class="admin-metric"><span>Open intakes</span><strong id="metricIntakes">—</strong></article>
+          <article class="admin-metric"><span>Active programmes</span><strong id="metricPrograms">—</strong></article>
+        </div>
+        <div class="admin-dashboard-chart-grid">
+          <div class="admin-panel">
+            <div class="admin-panel-heading"><div><h2>Programme demand</h2><p>Top programmes by saved selection, compared with submissions.</p></div></div>
+            <div class="admin-chart-legend" aria-label="Programme demand chart legend">
+              <span><i class="is-selections" aria-hidden="true"></i>Selections</span>
+              <span><i class="is-submissions" aria-hidden="true"></i>Submissions</span>
+            </div>
+            <div id="programmeDemandChart" class="admin-chart-list" role="list" aria-label="Top programme selections and submissions"></div>
+          </div>
+          <div class="admin-panel">
+            <div class="admin-panel-heading"><div><h2>Application status</h2><p>Distribution of submitted applications by current status.</p></div></div>
+            <div id="statusChart" class="admin-chart-list admin-status-chart" role="list" aria-label="Application counts by status"></div>
+          </div>
+        </div>
+        <div class="admin-panel">
+          <div class="admin-panel-heading"><div><h2>Programme demand details</h2><p>Selection and submission counts for the leading programmes.</p></div></div>
+          <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Programme</th><th>Selections</th><th>Submissions</th></tr></thead><tbody id="demandTable"></tbody></table></div>
+        </div>
+      </section>
+
+      <section class="admin-view" data-panel="intakes" hidden>
+        <div class="admin-section-heading"><div><h2>Intake management</h2><p>Control application periods and their open or closed status.</p></div></div>
+        <div class="admin-panel">
+          <div class="admin-panel-heading"><h2 id="intakeFormTitle">Create intake</h2></div>
+          <form id="intakeForm" class="admin-form admin-form-grid">
+            <label>Intake name<input name="name" maxlength="80" placeholder="e.g. November 2026" required /></label>
+            <label>Opening date<input name="openingDate" type="date" /></label>
+            <label>Closing date<input name="closingDate" type="date" /></label>
+            <label class="admin-checkbox"><input name="isOpen" type="checkbox" checked /> Applications are open</label>
+            <div class="admin-form-actions"><button class="admin-button admin-button-primary" type="submit">Save intake</button><button class="admin-button" type="reset" id="resetIntakeForm">Clear form</button></div>
+          </form>
+        </div>
+        <div class="admin-panel"><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Intake</th><th>Application dates</th><th>Programmes</th><th>Status</th><th>Actions</th></tr></thead><tbody id="intakesTable"></tbody></table></div></div>
+      </section>
+
+      <section class="admin-view" data-panel="programs" hidden>
+        <div class="admin-section-heading"><div><h2>Programme management</h2><p>Manage the existing programme catalogue and programme availability by intake.</p></div></div>
+        <div class="admin-panel">
+          <div class="admin-panel-heading"><h2 id="programFormTitle">Add programme</h2></div>
+          <form id="programForm" class="admin-form admin-form-grid">
+            <label>Programme level<select name="level" required><option value="">Choose level</option><option>Short courses</option><option>Diploma</option><option>Certificate</option></select></label>
+            <label>Programme name<input name="name" maxlength="180" required /></label>
+            <label>Duration<input name="duration" maxlength="80" placeholder="e.g. 2 years" required /></label>
+            <label>Tuition<input name="tuition" maxlength="80" placeholder="Optional" /></label>
+            <label class="admin-checkbox"><input name="isActive" type="checkbox" checked /> Programme is active</label>
+            <label class="admin-field-wide">Eligibility requirements<textarea name="eligibility" maxlength="2000" rows="3"></textarea></label>
+            <fieldset class="admin-field-wide"><legend>Available intakes</legend><div id="programIntakeChoices" class="admin-checkbox-list"></div></fieldset>
+            <div class="admin-form-actions"><button class="admin-button admin-button-primary" type="submit">Save programme</button><button class="admin-button" type="reset" id="resetProgramForm">Clear form</button></div>
+          </form>
+        </div>
+        <div class="admin-panel"><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Programme</th><th>Level</th><th>Duration</th><th>Intakes</th><th>Status</th><th>Actions</th></tr></thead><tbody id="programsTable"></tbody></table></div></div>
+      </section>
+
+      <section class="admin-view" data-panel="applicants" hidden>
+        <div class="admin-section-heading"><div><h2>Applicant management</h2><p>Find registered applicants, review verification, and manage account access.</p></div></div>
+        <div class="admin-panel">
+          <form id="applicantSearchForm" class="admin-filter-form">
+            <label class="admin-search">Search<input name="search" placeholder="Name, application number, email, or phone" /></label>
+            <label>Status<select name="status"><option value="">All applicants</option><option value="verified">Verified</option><option value="unverified">Unverified</option><option value="inactive">Inactive</option><option value="incomplete">Incomplete applications</option></select></label>
+            <button class="admin-button admin-button-primary" type="submit">Search</button>
+          </form>
+          <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Applicant</th><th>Reference</th><th>Verification</th><th>Application</th><th>Registered</th><th>Action</th></tr></thead><tbody id="applicantsTable"></tbody></table></div>
+        </div>
+        <div class="admin-panel" id="applicantDetailPanel" hidden><div class="admin-panel-heading"><div><h2 id="applicantDetailTitle">Applicant record</h2><p id="applicantDetailSubtitle"></p></div><button class="admin-button" type="button" data-close-applicant>Close</button></div><div id="applicantDetail"></div></div>
+      </section>
+
+      <section class="admin-view" data-panel="applications" hidden>
+        <div class="admin-section-heading"><div><h2>Application management</h2><p>Review submitted applications, spot incomplete records, and update progression.</p></div></div>
+        <div class="admin-panel">
+          <form id="applicationSearchForm" class="admin-filter-form">
+            <label class="admin-search">Search<input name="search" placeholder="Name, application number, email, or phone" /></label>
+            <label>Status<select name="status"><option value="">All records</option><option value="incomplete">Incomplete / not submitted</option><option value="failed">Failed submission attempts</option><option value="submitted">Submitted</option><option value="in_review">In review</option><option value="approved">Approved</option><option value="admitted">Admitted</option></select></label>
+            <button class="admin-button admin-button-primary" type="submit">Filter</button>
+          </form>
+          <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Applicant</th><th>Programme / intake</th><th>Status</th><th>Documents</th><th>Submitted</th><th>Review</th></tr></thead><tbody id="applicationsTable"></tbody></table></div>
+        </div>
+        <div class="admin-panel" id="applicationDetailPanel" hidden><div class="admin-panel-heading"><div><h2 id="applicationDetailTitle">Application record</h2><p id="applicationDetailSubtitle"></p></div><button class="admin-button" type="button" data-close-applicant>Close</button></div><div id="applicationDetail"></div></div>
+      </section>
+
+      <section class="admin-view" data-panel="announcements" hidden>
+        <div class="admin-section-heading"><div><h2>Announcements</h2><p>Publish application updates to the applicant dashboard.</p></div></div>
+        <div class="admin-panel">
+          <form id="announcementForm" class="admin-form">
+            <label>Announcement title<input name="title" maxlength="180" required /></label>
+            <label>Message<textarea name="body" maxlength="5000" rows="5" required></textarea></label>
+            <button class="admin-button admin-button-primary" type="submit">Publish announcement</button>
+          </form>
+        </div>
+        <div id="announcementsList" class="admin-announcement-list"></div>
+      </section>
+
+      <section class="admin-view" data-panel="reports" hidden>
+        <div class="admin-section-heading"><div><h2>Reports & analytics</h2><p>Download current portal records for authorized institutional reporting.</p></div></div>
+        <div class="admin-report-grid">
+          <article class="admin-panel"><span class="admin-report-icon">01</span><h2>Applicant register</h2><p>Registration, verification, contact, account status, and application outcome.</p><button class="admin-button admin-button-primary" type="button" data-report="applicants">Download applicant CSV</button></article>
+          <article class="admin-panel"><span class="admin-report-icon">02</span><h2>Application register</h2><p>Programme selection, intake, submission status, and required document checks.</p><button class="admin-button admin-button-primary" type="button" data-report="applications">Download application CSV</button></article>
+        </div>
+        <p class="admin-report-note">CSV exports are generated from the current database. Protect exported files as confidential applicant data.</p>
+      </section>
+
+      <section class="admin-view" data-panel="staff" hidden>
+        <div class="admin-section-heading"><div><h2>Staff access & audit</h2><p>Provision authorized staff accounts and review administrative activity.</p></div></div>
+        <div class="admin-panel">
+          <div class="admin-panel-heading"><h2>Create staff account</h2></div>
+          <form id="staffForm" class="admin-form admin-form-grid">
+            <label>Email address<input name="email" type="email" maxlength="254" required /></label>
+            <label>Temporary password<input name="password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required /></label>
+            <label>Role<select name="role" required><option value="">Choose role</option><option value="admin">Administrator</option><option value="reviewer">Application reviewer</option><option value="superadmin">Superadministrator</option></select></label>
+            <div class="admin-form-actions"><button class="admin-button admin-button-primary" type="submit">Create staff account</button></div>
+          </form>
+        </div>
+        <div class="admin-panel"><div class="admin-panel-heading"><h2>Staff accounts</h2></div><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Email</th><th>Role</th><th>Status</th><th>Last sign-in</th><th>Actions</th></tr></thead><tbody id="staffTable"></tbody></table></div></div>
+        <div class="admin-panel"><div class="admin-panel-heading"><h2>Audit log</h2><button class="admin-button" type="button" data-refresh-audit>Refresh</button></div><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>When</th><th>Staff</th><th>Action</th><th>Record</th><th>Details</th></tr></thead><tbody id="auditTable"></tbody></table></div></div>
+      </section>
+
+      <footer class="admin-footer">EAIMS admissions administration · AR system integration is not enabled in this release.</footer>
+    </main>
+  </div>
+  <script src="/js/admin-client.js" defer></script>
+  <script src="/js/admin.js" defer></script>
+</body>
+</html>

@@ -13,13 +13,20 @@
 
   const params = new URLSearchParams(window.location.search);
   if (params.get('delivery') === 'unavailable') {
-    window.EaimsAuth.showFormMessage(formSuccess, 'Account created, but email or SMS delivery is not configured. Contact EAIMS support if you do not receive a code.', 'warning');
+    window.EaimsAuth.showFormMessage(formSuccess, 'Your account was created. If you do not receive a verification code, contact EAIMS support.', 'warning');
   }
 
   function getStoredDeliveryInfo() {
     try {
       const raw = window.sessionStorage.getItem('eaimsDeliveryInfo');
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const delivery = JSON.parse(raw);
+      const safeDelivery = {
+        email: { sent: Boolean(delivery.email && delivery.email.sent) },
+        sms: { sent: Boolean(delivery.sms && delivery.sms.sent) },
+      };
+      window.sessionStorage.setItem('eaimsDeliveryInfo', JSON.stringify(safeDelivery));
+      return safeDelivery;
     } catch (error) {
       return null;
     }
@@ -27,7 +34,11 @@
 
   function storeDeliveryInfo(delivery) {
     try {
-      window.sessionStorage.setItem('eaimsDeliveryInfo', JSON.stringify(delivery || {}));
+      const safeDelivery = {
+        email: { sent: Boolean(delivery && delivery.email && delivery.email.sent) },
+        sms: { sent: Boolean(delivery && delivery.sms && delivery.sms.sent) },
+      };
+      window.sessionStorage.setItem('eaimsDeliveryInfo', JSON.stringify(safeDelivery));
     } catch (error) {}
   }
 
@@ -43,18 +54,17 @@
     if (delivery.email && delivery.email.sent) channels.push('email');
     if (delivery.sms && delivery.sms.sent) channels.push('SMS');
     const failures = [];
-    if (delivery.email && !delivery.email.sent) failures.push(`email (${delivery.email.reason || 'failed'})`);
-    if (delivery.sms && !delivery.sms.sent) failures.push(`SMS (${delivery.sms.reason || 'failed'})`);
+    if (delivery.email && !delivery.email.sent) failures.push('email');
+    if (delivery.sms && !delivery.sms.sent) failures.push('SMS');
     if (channels.length === 0 && failures.length === 0) return null;
     let summary = '';
     if (channels.length > 0) {
       summary = `The verification code has been sent to your ${channels.join(' and ')}.`;
     }
     if (failures.length > 0) {
-      summary += ` ${failures.length > 0 ? 'Note: ' : ''}${failures.join(', ')} could not be delivered.`;
-    }
-    if (delivery.developmentCode) {
-      summary += ` Development code: ${delivery.developmentCode}.`;
+      summary += channels.length > 0
+        ? ' It could not be sent to all of your contact methods.'
+        : ' We could not send a verification code. Please contact support if you need help.';
     }
     return summary;
   }
@@ -65,7 +75,6 @@
     if (summary) {
       deliveryInfo.textContent = summary;
       deliveryInfo.hidden = false;
-      if (delivery && delivery.developmentCode && !codeInput.value) codeInput.value = delivery.developmentCode;
     } else {
       deliveryInfo.hidden = true;
     }
